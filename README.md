@@ -1,11 +1,9 @@
 # 1. Tên Dự Án
-**Xây dựng Hệ thống Quản lý Chi tiêu Cá nhân Thông minh (Smart Personal Finance Manager)**
-
-*(Đã chuẩn hóa bắt đầu bằng động từ "Xây dựng", không chứa từ "trang Web")*
+**Xây dựng hệ thống quản lý chi tiêu cá nhân thông minh**
 
 ---
 
-# 2. Phân Tích Bài Toán
+# 2. Phân tích bài toán
 
 ## 2.1. Phân tích các đối tượng (Entities / Classes)
 
