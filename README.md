@@ -1,4 +1,4 @@
-# 1. Tên Dự Án
+# 1. Tên dự án
 **Xây dựng hệ thống quản lý chi tiêu cá nhân thông minh**
 
 ---
