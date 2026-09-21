@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartMoney - Giao Diện Người Dùng</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 px-4 lg:px-8 py-3 flex items-center justify-between shadow-sm">
+        <div class="flex items-center gap-4">
+            <button onclick="toggleSidebar()" class="lg:hidden text-slate-600 p-2"><i class="fa-solid fa-bars text-lg"></i></button>
+            <div class="flex items-center gap-2.5">
+                <div class="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center text-xl shadow-md shadow-emerald-500/30">
+                    <i class="fa-solid fa-wallet"></i>
+                </div>
+                <div>
+                    <span class="font-extrabold text-lg tracking-tight text-slate-800">SmartMoney</span>
+                    <span class="ml-2 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">USER</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 pl-3 border-l border-slate-200">
+                <div class="w-9 h-9 rounded-xl bg-emerald-600 text-white font-bold flex items-center justify-center text-sm" id="user-avatar">U</div>
+                <div class="hidden md:block text-left">
+                    <p class="text-xs font-bold text-slate-800 leading-tight" id="user-name">User Name</p>
+                    <p class="text-[11px] text-slate-400" id="user-email">user@smartmoney.vn</p>
+                </div>
+                <button onclick="logout()" title="Đăng xuất" class="text-slate-400 hover:text-rose-600 p-1.5"><i class="fa-solid fa-arrow-right-from-bracket text-base"></i></button>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex-1 flex overflow-hidden">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="w-64 bg-white border-r border-slate-200 flex flex-col justify-between fixed lg:static inset-y-0 left-0 z-40 transform -translate-x-full lg:translate-x-0 transition-transform">
+            <div class="p-4 space-y-2">
+                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">Menu Cá Nhân</p>
+                <nav class="space-y-1">
+                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 nav-active"><i class="fa-solid fa-chart-pie text-emerald-600"></i> Tổng quan</button>
+                    <button onclick="switchTab('wallets')" id="nav-wallets" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100"><i class="fa-solid fa-wallet text-blue-600"></i> Ví & Tài khoản</button>
+                    <button onclick="switchTab('transactions')" id="nav-transactions" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100"><i class="fa-solid fa-receipt text-purple-600"></i> Sổ giao dịch</button>
+                    <button onclick="switchTab('budgets')" id="nav-budgets" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100"><i class="fa-solid fa-bullseye text-rose-600"></i> Hạn mức ngân sách</button>
+                    <button onclick="switchTab('goals')" id="nav-goals" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100"><i class="fa-solid fa-piggy-bank text-amber-600"></i> Mục tiêu tiết kiệm</button>
+                </nav>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto p-4 lg:p-8 space-y-6">
+
+            <!-- TAB 1: DASHBOARD -->
+            <div id="tab-dashboard" class="tab-pane space-y-6">
+                <!-- Welcome Banner -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-emerald-600 to-teal-700 p-6 rounded-3xl text-white shadow-xl">
+                    <div>
+                        <h2 class="text-2xl font-black">Xin chào, <span id="welcome-name">Bạn</span>! 👋</h2>
+                        <p class="text-emerald-100 text-sm mt-1">Chúc bạn một ngày quản lý chi tiêu hiệu quả.</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="openModal('modal-transaction')" class="px-4 py-2.5 bg-white text-emerald-700 rounded-xl font-bold text-sm shadow hover:bg-emerald-50"><i class="fa-solid fa-plus-circle"></i> Thêm Giao Dịch</button>
+                        <button onclick="openModal('modal-wallet')" class="px-4 py-2.5 bg-emerald-800 text-white rounded-xl font-bold text-sm border border-white/20"><i class="fa-solid fa-plus"></i> Thêm Ví</button>
+                    </div>
+                </div>
+
+                <!-- 4 Thẻ Số Liệu -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                        <span class="text-xs font-bold text-slate-400 uppercase">Tổng Số Dư</span>
+                        <h3 class="text-2xl font-black text-slate-800 mt-2" id="stat-total-balance">0 đ</h3>
+                    </div>
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                        <span class="text-xs font-bold text-slate-400 uppercase">Tổng Thu Tháng</span>
+                        <h3 class="text-2xl font-black text-blue-600 mt-2" id="stat-total-income">+0 đ</h3>
+                    </div>
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                        <span class="text-xs font-bold text-slate-400 uppercase">Tổng Chi Tháng</span>
+                        <h3 class="text-2xl font-black text-rose-600 mt-2" id="stat-total-expense">-0 đ</h3>
+                    </div>
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                        <span class="text-xs font-bold text-slate-400 uppercase">Tích Lũy Tiết Kiệm</span>
+                        <h3 class="text-2xl font-black text-amber-600 mt-2" id="stat-total-goal">0 đ</h3>
+                    </div>
+                </div>
+
+                <!-- Biểu đồ -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                        <h3 class="font-bold text-slate-800 mb-3">Biến động Thu - Chi</h3>
+                        <div class="h-64"><canvas id="userCashflowChart"></canvas></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                        <h3 class="font-bold text-slate-800 mb-3">Cơ cấu danh mục</h3>
+                        <div class="h-64"><canvas id="userCategoryChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: VÍ & TÀI KHOẢN -->
+            <div id="tab-wallets" class="tab-pane hidden space-y-4">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-black text-slate-800">Ví & Nguồn Tiền</h2>
+                    <button onclick="openModal('modal-wallet')" class="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-bold">+ Thêm Ví</button>
+                </div>
+                <div id="wallets-container" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+            </div>
+
+            <!-- TAB 3: GIAO DỊCH -->
+            <div id="tab-transactions" class="tab-pane hidden space-y-4">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-black text-slate-800">Lịch Sử Giao Dịch</h2>
+                    <button onclick="openModal('modal-transaction')" class="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-bold">+ Giao Dịch Mới</button>
+                </div>
+                <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-50 text-slate-500 uppercase border-b border-slate-200">
+                            <tr>
+                                <th class="p-3">Hạng mục</th>
+                                <th class="p-3">Ví</th>
+                                <th class="p-3">Ghi chú</th>
+                                <th class="p-3">Ngày</th>
+                                <th class="p-3 text-right">Số tiền</th>
+                                <th class="p-3 text-center">Xóa</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transactions-table" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB 4: HẠN MỨC NGÂN SÁCH -->
+            <div id="tab-budgets" class="tab-pane hidden space-y-4">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-black text-slate-800">Hạn Mức Chi Tiêu (Budget)</h2>
+                    <button onclick="openModal('modal-budget')" class="px-4 py-2 bg-rose-600 text-white rounded-xl text-sm font-bold">+ Đặt Ngân Sách</button>
+                </div>
+                <div id="budgets-container" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+            </div>
+
+            <!-- TAB 5: MỤC TIÊU TIẾT KIỆM -->
+            <div id="tab-goals" class="tab-pane hidden space-y-4">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-black text-slate-800">Mục Tiêu Tiết Kiệm (Goals)</h2>
+                    <button onclick="openModal('modal-goal')" class="px-4 py-2 bg-amber-600 text-white rounded-xl text-sm font-bold">+ Tạo Mục Tiêu</button>
+                </div>
+                <div id="goals-container" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- MODAL GIAO DỊCH -->
+    <div id="modal-transaction" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-3">
+            <h3 class="font-bold text-lg text-slate-800">Thêm Giao Dịch Mới</h3>
+            <form onsubmit="saveTransaction(event)" class="space-y-3 text-xs">
+                <select id="modal-trans-type" onchange="loadCategoryOptions(this.value)" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold">
+                    <option value="Expense">Khoản Chi (-)</option>
+                    <option value="Income">Khoản Thu (+)</option>
+                </select>
+                <input type="number" id="modal-trans-amount" required placeholder="Số tiền (VNĐ)" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold">
+                <select id="modal-trans-category" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl"></select>
+                <select id="modal-trans-wallet" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl"></select>
+                <input type="date" id="modal-trans-date" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                <input type="text" id="modal-trans-note" placeholder="Ghi chú chi tiêu..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                <div class="flex gap-2 pt-2">
+                    <button type="button" onclick="closeModal('modal-transaction')" class="flex-1 py-2.5 bg-slate-100 rounded-xl font-bold">Hủy</button>
+                    <button type="submit" class="flex-1 py-2.5 bg-emerald-600 text-white rounded-xl font-bold">Lưu Giao Dịch</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL VÍ -->
+    <div id="modal-wallet" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-3">
+            <h3 class="font-bold text-lg text-slate-800">Thêm Ví / Nguồn Tiền</h3>
+            <form onsubmit="saveWallet(event)" class="space-y-3 text-xs">
+                <input type="text" id="modal-wallet-name" required placeholder="Tên ví (VD: Tiền mặt, MB Bank...)" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold">
+                <select id="modal-wallet-type" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                    <option value="Cash">Ví Tiền Mặt</option>
+                    <option value="Bank">Tài Khoản Ngân Hàng</option>
+                    <option value="Credit">Thẻ Tín Dụng</option>
+                </select>
+                <input type="number" id="modal-wallet-balance" required placeholder="Số dư ban đầu" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold">
+                <div class="flex gap-2 pt-2">
+                    <button type="button" onclick="closeModal('modal-wallet')" class="flex-1 py-2.5 bg-slate-100 rounded-xl font-bold">Hủy</button>
+                    <button type="submit" class="flex-1 py-2.5 bg-emerald-600 text-white rounded-xl font-bold">Tạo Ví</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL NGÂN SÁCH -->
+    <div id="modal-budget" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-3">
+            <h3 class="font-bold text-lg text-slate-800">Đặt Hạn Mức Ngân Sách</h3>
+            <form onsubmit="saveBudget(event)" class="space-y-3 text-xs">
+                <select id="modal-budget-category" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl"></select>
+                <input type="number" id="modal-budget-limit" required placeholder="Hạn mức tối đa (VNĐ)" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold">
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="date" id="modal-budget-start" required class="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl">
+                    <input type="date" id="modal-budget-end" required class="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl">
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button type="button" onclick="closeModal('modal-budget')" class="flex-1 py-2.5 bg-slate-100 rounded-xl font-bold">Hủy</button>
+                    <button type="submit" class="flex-1 py-2.5 bg-rose-600 text-white rounded-xl font-bold">Lưu Hạn Mức</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL MỤC TIÊU -->
+    <div id="modal-goal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-3">
+            <h3 class="font-bold text-lg text-slate-800">Tạo Mục Tiêu Tiết Kiệm</h3>
+            <form onsubmit="saveGoal(event)" class="space-y-3 text-xs">
+                <input type="text" id="modal-goal-name" required placeholder="Tên mục tiêu (VD: Mua xe, Du lịch...)" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold">
+                <input type="number" id="modal-goal-target" required placeholder="Số tiền mục tiêu (VNĐ)" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold">
+                <input type="number" id="modal-goal-current" placeholder="Đã có sẵn (VNĐ)" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                <input type="date" id="modal-goal-date" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                <div class="flex gap-2 pt-2">
+                    <button type="button" onclick="closeModal('modal-goal')" class="flex-1 py-2.5 bg-slate-100 rounded-xl font-bold">Hủy</button>
+                    <button type="submit" class="flex-1 py-2.5 bg-amber-600 text-white rounded-xl font-bold">Tạo Mục Tiêu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/user.js"></script>
+</body>
+</html>

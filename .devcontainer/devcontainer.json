@@ -1,0 +1,15 @@
+{
+  "name": "HTML CSS JS Dev Container",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-20-bullseye",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ritwickdey.LiveServer",
+        "ecmel.vscode-html-css",
+        "esbenp.prettier-vscode",
+        "formulahendry.auto-close-tag"
+      ]
+    }
+  },
+  "forwardPorts": [5500]
+}
