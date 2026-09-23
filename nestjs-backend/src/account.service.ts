@@ -17,4 +17,4 @@ export class AccountService {
     const account = this.accountRepository.create(accountData);
     return this.accountRepository.save(account);
   }
-}
+} 
