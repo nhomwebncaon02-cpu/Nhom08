@@ -1,7 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
-import { User } from '../../users/entities/user.entity';
-import { Transaction } from '../../transactions/entities/transaction.entity';
-import { Budget } from '../../budgets/entities/budget.entity';
+import { User } from './user.entity';
+import { Transaction } from './transaction/entities/transaction.entity';
 
 @Entity('categories')
 export class Category {
@@ -20,13 +19,10 @@ export class Category {
   @Column({ length: 50, nullable: true })
   icon: string;
 
-  @ManyToOne(() => User, (user) => user.categories, { onDelete: 'CASCADE', nullable: true })
+  @ManyToOne(() => User, (user: any) => user.categories, { onDelete: 'CASCADE', nullable: true })
   @JoinColumn({ name: 'userId' })
   user: User;
 
-  @OneToMany(() => Transaction, (transaction) => transaction.category)
+  @OneToMany(() => Transaction, (transaction: any) => transaction.category)
   transactions: Transaction[];
-
-  @OneToMany(() => Budget, (budget) => budget.category)
-  budgets: Budget[];
 }
