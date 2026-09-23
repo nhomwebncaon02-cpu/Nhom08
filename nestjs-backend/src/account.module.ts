@@ -9,4 +9,4 @@ import { DatabaseModule } from './database.module';
   controllers: [AccountController],
   providers: [...accountProviders, AccountService],
 })
-export class AccountModule {}
+export class AccountModule {} 
