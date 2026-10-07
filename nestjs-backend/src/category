@@ -1,0 +1,24 @@
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { User } from './user.entity';
+
+@Entity('Category')
+export class Category {
+  @PrimaryGeneratedColumn()
+  CategoryId: number;
+
+  @Column({ nullable: true })
+  UserId: number; // Null nếu là danh mục mặc định của hệ thống
+
+  @Column({ length: 100 })
+  CategoryName: string;
+
+  @Column({ type: 'enum', enum: ['Income', 'Expense'] })
+  Type: string;
+
+  @Column({ length: 50, nullable: true })
+  Icon: string;
+
+  @ManyToOne(() => User, { onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'UserId' })
+  user: User;
+}
