@@ -4,6 +4,6 @@ export declare class AuthController {
     constructor(authService: AuthService);
     login(body: any): {
         message: string;
-        access_token: string;
+        access_token: any;
     };
 }

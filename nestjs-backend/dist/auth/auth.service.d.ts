@@ -4,6 +4,6 @@ export declare class AuthService {
     constructor(jwtService: JwtService);
     login(userDto: any): {
         message: string;
-        access_token: string;
+        access_token: any;
     };
 }

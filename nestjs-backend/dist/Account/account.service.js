@@ -8,30 +8,30 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-var _a;
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AuthService = void 0;
+exports.AccountService = void 0;
 const common_1 = require("@nestjs/common");
-const jwt_1 = require("@nestjs/jwt");
-let AuthService = class AuthService {
-    jwtService;
-    constructor(jwtService) {
-        this.jwtService = jwtService;
+const typeorm_1 = require("typeorm");
+let AccountService = class AccountService {
+    accountRepository;
+    constructor(accountRepository) {
+        this.accountRepository = accountRepository;
     }
-    login(userDto) {
-        if (userDto.username === 'admin' && userDto.password === '123456') {
-            const payload = { username: userDto.username, role: 'quantrivien' };
-            return {
-                message: 'Đăng nhập thành công!',
-                access_token: this.jwtService.sign(payload),
-            };
-        }
-        throw new common_1.UnauthorizedException('Sai tài khoản hoặc mật khẩu');
+    async findAll() {
+        return this.accountRepository.find();
+    }
+    async create(accountData) {
+        const account = this.accountRepository.create(accountData);
+        return this.accountRepository.save(account);
     }
 };
-exports.AuthService = AuthService;
-exports.AuthService = AuthService = __decorate([
+exports.AccountService = AccountService;
+exports.AccountService = AccountService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [typeof (_a = typeof jwt_1.JwtService !== "undefined" && jwt_1.JwtService) === "function" ? _a : Object])
-], AuthService);
-//# sourceMappingURL=auth.service.js.map
+    __param(0, (0, common_1.Inject)('ACCOUNT_REPOSITORY')),
+    __metadata("design:paramtypes", [typeorm_1.Repository])
+], AccountService);
+//# sourceMappingURL=account.service.js.map
