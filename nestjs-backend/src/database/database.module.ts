@@ -12,6 +12,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
       database: 'QUANLYCHITIEU',
       entities: [__dirname + '/../**/*.entity{.ts,.js}'],
       synchronize: false,  
+      autoLoadEntities: true,
     }),
   ],
 })

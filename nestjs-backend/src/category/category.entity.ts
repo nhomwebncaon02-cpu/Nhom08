@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
-import { User } from './user.entity';
-import { Transaction } from './transaction/entities/transaction.entity';
+import { User } from '../user/entities/user.entity';
+import { Transaction } from '../transaction/transaction.entity';
 
 @Entity('categories')
 export class Category {
@@ -25,4 +25,4 @@ export class Category {
 
   @OneToMany(() => Transaction, (transaction: any) => transaction.category)
   transactions: Transaction[];
-}
+} 
