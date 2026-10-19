@@ -1,5 +1,15 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
+:root {
+    color-scheme: light;
+    --sm-ink: #1d2933;
+    --sm-muted: #657581;
+    --sm-line: #dce5e9;
+    --sm-canvas: #f7fafb;
+    --sm-accent: #087ea4;
+    --sm-accent-soft: #e8f5f8;
+}
+
 body {
     font-family: 'Plus Jakarta Sans', sans-serif;
 }
@@ -28,4 +38,213 @@ body {
 .admin-nav-active {
     background-color: #8b5cf6;
     color: #ffffff !important;
+}
+
+body {
+    background-color: var(--sm-canvas);
+    color: var(--sm-ink);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+body:has(#form-login) {
+    min-height: 100vh;
+    background-color: #f6fafb;
+    background-image: linear-gradient(rgb(8 126 164 / 4%) 1px, transparent 1px), linear-gradient(90deg, rgb(8 126 164 / 4%) 1px, transparent 1px);
+    background-size: 32px 32px;
+}
+
+body:has(#form-login) > div {
+    max-width: 440px;
+    border: 1px solid var(--sm-line);
+    border-radius: 8px;
+    box-shadow: 0 20px 60px rgb(21 52 66 / 10%);
+}
+
+body:has(#form-login) .bg-emerald-500,
+body:has(#form-login) .bg-emerald-600 {
+    background-color: var(--sm-accent);
+}
+
+body:has(#form-login) .hover\:bg-emerald-700:hover {
+    background-color: #066987;
+}
+
+body > header {
+    min-height: 68px;
+    padding-inline: clamp(16px, 3vw, 40px);
+    border-color: var(--sm-line);
+    box-shadow: none;
+}
+
+body > header a > div:first-child {
+    border-radius: 6px;
+    box-shadow: none;
+}
+
+body > header .bg-emerald-500,
+body > header .bg-emerald-600,
+body > header .bg-purple-600 {
+    background-color: var(--sm-accent);
+}
+
+body > header .bg-emerald-100,
+body > header .bg-purple-100 {
+    background-color: var(--sm-accent-soft);
+    color: var(--sm-accent);
+}
+
+body > header .rounded-xl {
+    border-radius: 6px;
+}
+
+.flex-1.flex.overflow-hidden > aside {
+    flex: 0 0 248px;
+    width: 248px;
+    border-color: var(--sm-line);
+    box-shadow: none;
+}
+
+.flex-1.flex.overflow-hidden > aside nav button {
+    min-height: 40px;
+    border-radius: 5px;
+    transition: background-color 150ms ease, color 150ms ease;
+}
+
+.nav-active,
+.admin-nav-active {
+    background-color: var(--sm-accent-soft) !important;
+    color: var(--sm-accent) !important;
+}
+
+.flex-1.flex.overflow-hidden > main {
+    min-width: 0;
+    background: var(--sm-canvas);
+}
+
+.rounded-2xl.border,
+.rounded-2xl.border-slate-200,
+.rounded-2xl.max-w-md,
+.rounded-3xl {
+    border-radius: 7px;
+}
+
+.bg-white.p-5.rounded-2xl,
+.bg-white.p-6.rounded-2xl,
+.bg-white.rounded-2xl.border,
+.bg-white.rounded-2xl.max-w-md {
+    border-color: var(--sm-line);
+    box-shadow: 0 2px 8px rgb(31 57 69 / 3%);
+}
+
+.flex-1.flex.overflow-hidden main h2,
+.flex-1.flex.overflow-hidden main h3 {
+    color: var(--sm-ink);
+}
+
+.flex-1.flex.overflow-hidden main button.bg-emerald-600,
+.flex-1.flex.overflow-hidden main button.bg-purple-600 {
+    border-radius: 5px;
+    background-color: var(--sm-accent);
+    box-shadow: none;
+}
+
+.flex-1.flex.overflow-hidden main button.bg-rose-600,
+.flex-1.flex.overflow-hidden main button.bg-amber-600 {
+    border-radius: 5px;
+    box-shadow: none;
+}
+
+.flex-1.flex.overflow-hidden main [class*="bg-gradient-to-r"] {
+    border-radius: 7px;
+    background-color: #0b3444;
+    background-image: none;
+    box-shadow: none;
+}
+
+.flex-1.flex.overflow-hidden main table {
+    min-width: 620px;
+}
+
+.flex-1.flex.overflow-hidden main thead {
+    background-color: #f3f7f8;
+}
+
+.flex-1.flex.overflow-hidden main th {
+    color: var(--sm-muted);
+    font-size: 0.68rem;
+    letter-spacing: 0;
+}
+
+.flex-1.flex.overflow-hidden main input,
+.flex-1.flex.overflow-hidden main select {
+    min-height: 40px;
+    border-color: var(--sm-line);
+    border-radius: 5px;
+    color: var(--sm-ink);
+}
+
+button,
+a,
+input,
+select {
+    transition-duration: 150ms;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+    outline: 3px solid rgb(8 126 164 / 24%);
+    outline-offset: 2px;
+}
+
+@media (max-width: 700px) {
+    body > header {
+        min-height: 60px;
+        padding-inline: 12px;
+    }
+
+    .flex-1.flex.overflow-hidden > main {
+        padding: 18px 14px;
+    }
+
+    body:has(#admin-name) .flex-1.flex.overflow-hidden {
+        flex-direction: column;
+        overflow: visible;
+    }
+
+    body:has(#admin-name) .flex-1.flex.overflow-hidden > aside {
+        position: static;
+        width: 100%;
+        flex: 0 0 auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--sm-line);
+    }
+
+    body:has(#admin-name) .flex-1.flex.overflow-hidden > aside nav {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    body:has(#admin-name) .flex-1.flex.overflow-hidden > aside nav button {
+        justify-content: center;
+        gap: 6px;
+        padding-inline: 6px;
+        font-size: 0.7rem;
+    }
+
+    .flex-1.flex.overflow-hidden main [class*="bg-gradient-to-r"] {
+        padding: 20px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }
