@@ -11,27 +11,34 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Transaction = void 0;
 const typeorm_1 = require("typeorm");
+const category_entity_1 = require("../category/category.entity");
 let Transaction = class Transaction {
     TransactionId;
     AccountId;
     CategoryId;
+    category;
     Amount;
     TransactionDate;
     Note;
 };
 exports.Transaction = Transaction;
 __decorate([
-    (0, typeorm_1.PrimaryColumn)({ length: 15 }),
-    __metadata("design:type", String)
+    (0, typeorm_1.PrimaryColumn)(),
+    __metadata("design:type", Number)
 ], Transaction.prototype, "TransactionId", void 0);
 __decorate([
     (0, typeorm_1.Column)({ length: 15 }),
     __metadata("design:type", String)
 ], Transaction.prototype, "AccountId", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ length: 15 }),
-    __metadata("design:type", String)
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", Number)
 ], Transaction.prototype, "CategoryId", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => category_entity_1.Category, (category) => category.transactions),
+    (0, typeorm_1.JoinColumn)({ name: 'CategoryId' }),
+    __metadata("design:type", category_entity_1.Category)
+], Transaction.prototype, "category", void 0);
 __decorate([
     (0, typeorm_1.Column)('decimal'),
     __metadata("design:type", Number)

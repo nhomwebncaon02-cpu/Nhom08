@@ -1,7 +1,9 @@
+import { Category } from '../category/category.entity';
 export declare class Transaction {
-    TransactionId: string;
+    TransactionId: number;
     AccountId: string;
-    CategoryId: string;
+    CategoryId: number;
+    category: Category;
     Amount: number;
     TransactionDate: string;
     Note: string;

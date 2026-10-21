@@ -24,6 +24,7 @@ exports.DatabaseModule = DatabaseModule = __decorate([
                 database: 'QUANLYCHITIEU',
                 entities: [__dirname + '/../**/*.entity{.ts,.js}'],
                 synchronize: false,
+                autoLoadEntities: true,
             }),
         ],
     })

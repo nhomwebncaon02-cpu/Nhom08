@@ -7,4 +7,3 @@ export declare class AuthController {
         access_token: string;
     };
 }
- 

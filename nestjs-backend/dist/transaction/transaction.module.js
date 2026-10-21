@@ -8,14 +8,15 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TransactionModule = void 0;
 const common_1 = require("@nestjs/common");
+const typeorm_1 = require("@nestjs/typeorm");
+const transaction_entity_1 = require("./transaction.entity");
 const transaction_service_1 = require("./transaction.service");
-const transaction_controller_1 = require("./transaction.controller");
 let TransactionModule = class TransactionModule {
 };
 exports.TransactionModule = TransactionModule;
 exports.TransactionModule = TransactionModule = __decorate([
     (0, common_1.Module)({
-        controllers: [transaction_controller_1.TransactionController],
+        imports: [typeorm_1.TypeOrmModule.forFeature([transaction_entity_1.Transaction])],
         providers: [transaction_service_1.TransactionService],
     })
 ], TransactionModule);

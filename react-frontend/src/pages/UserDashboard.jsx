@@ -1,0 +1,227 @@
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+const UserDashboard = () => {
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [currentUser, setCurrentUser] = useState({ FullName: 'User', Email: 'user@smartmoney.vn' });
+  
+  // State dữ liệu mô phỏng theo localStorage
+  const [stats, setStats] = useState({ totalBalance: 0, totalIncome: 0, totalExpense: 0, totalGoal: 0 });
+  const [wallets, setWallets] = useState([]);
+  const [transactions, setTransactions] = useState([]);
+  const [budgets, setBudgets] = useState([]);
+  const [goals, setGoals] = useState([]);
+
+  useEffect(() => {
+    const session = localStorage.getItem('SM_LOGGED_USER');
+    if (!session) {
+      navigate('/auth');
+      return;
+    }
+    const user = JSON.parse(session);
+    setCurrentUser(user);
+    loadData(user);
+  }, [navigate]);
+
+  const loadData = (user) => {
+    const allAccounts = JSON.parse(localStorage.getItem('SM_ACCOUNTS') || '[]').filter(a => a.UserId === user.UserId);
+    const myAccIds = allAccounts.map(a => a.AccountId);
+    const allTrans = JSON.parse(localStorage.getItem('SM_TRANSACTIONS') || '[]').filter(t => myAccIds.includes(t.AccountId));
+    const allBudgets = JSON.parse(localStorage.getItem('SM_BUDGETS') || '[]').filter(b => b.UserId === user.UserId);
+    const allGoals = JSON.parse(localStorage.getItem('SM_GOALS') || '[]').filter(g => g.UserId === user.UserId);
+
+    setWallets(allAccounts);
+    setTransactions(allTrans);
+    setBudgets(allBudgets);
+    setGoals(allGoals);
+
+    const totalBalance = allAccounts.reduce((sum, a) => sum + Number(a.Balance), 0);
+    setStats({ totalBalance, totalIncome: 22000000, totalExpense: 9500000, totalGoal: 22500000 });
+  };
+
+  const handleLogout = () => {
+    if (window.confirm('Bạn có chắc chắn muốn đăng xuất?')) {
+      localStorage.removeItem('SM_LOGGED_USER');
+      navigate('/auth');
+    }
+  };
+
+  const formatVND = (amount) => {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+  };
+
+  return (
+    <div className="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+      {/* Header */}
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-30 px-4 lg:px-8 py-3 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center text-xl shadow-md shadow-emerald-500/30">
+              <i className="fa-solid fa-wallet"></i>
+            </div>
+            <div>
+              <span className="font-extrabold text-lg tracking-tight text-slate-800">SmartMoney</span>
+              <span className="ml-2 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">USER</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 pl-3 border-l border-slate-200">
+            <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white font-bold flex items-center justify-center text-sm">
+              {currentUser.FullName.charAt(0).toUpperCase()}
+            </div>
+            <div className="hidden md:block text-left">
+              <p className="text-xs font-bold text-slate-800 leading-tight">{currentUser.FullName}</p>
+              <p className="text-[11px] text-slate-400">{currentUser.Email}</p>
+            </div>
+            <button onClick={handleLogout} title="Đăng xuất" className="text-slate-400 hover:text-rose-600 p-1.5">
+              <i className="fa-solid fa-arrow-right-from-bracket text-base"></i>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div className="flex-1 flex overflow-hidden">
+        {/* Sidebar */}
+        <aside className="w-64 bg-white border-r border-slate-200 flex flex-col justify-between p-4 space-y-2">
+          <div className="space-y-2">
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">Menu Cá Nhân</p>
+            <nav className="space-y-1">
+              <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold ${activeTab === 'dashboard' ? 'bg-emerald-50 text-emerald-700 font-bold' : 'text-slate-600 hover:bg-slate-100'}`}>
+                <i className="fa-solid fa-chart-pie text-emerald-600"></i> Tổng quan
+              </button>
+              <button onClick={() => setActiveTab('wallets')} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold ${activeTab === 'wallets' ? 'bg-emerald-50 text-emerald-700 font-bold' : 'text-slate-600 hover:bg-slate-100'}`}>
+                <i className="fa-solid fa-wallet text-blue-600"></i> Ví & Tài khoản
+              </button>
+              <button onClick={() => setActiveTab('transactions')} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold ${activeTab === 'transactions' ? 'bg-emerald-50 text-emerald-700 font-bold' : 'text-slate-600 hover:bg-slate-100'}`}>
+                <i className="fa-solid fa-receipt text-purple-600"></i> Sổ giao dịch
+              </button>
+              <button onClick={() => setActiveTab('budgets')} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold ${activeTab === 'budgets' ? 'bg-emerald-50 text-emerald-700 font-bold' : 'text-slate-600 hover:bg-slate-100'}`}>
+                <i className="fa-solid fa-bullseye text-rose-600"></i> Hạn mức ngân sách
+              </button>
+              <button onClick={() => setActiveTab('goals')} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold ${activeTab === 'goals' ? 'bg-emerald-50 text-emerald-700 font-bold' : 'text-slate-600 hover:bg-slate-100'}`}>
+                <i className="fa-solid fa-piggy-bank text-amber-600"></i> Mục tiêu tiết kiệm
+              </button>
+            </nav>
+          </div>
+        </aside>
+
+        {/* Main Content */}
+        <main className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-6">
+          {/* TAB 1: DASHBOARD */}
+          {activeTab === 'dashboard' && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-emerald-600 to-teal-700 p-6 rounded-3xl text-white shadow-xl">
+                <div>
+                  <h2 className="text-2xl font-black">Xin chào, {currentUser.FullName}! 👋</h2>
+                  <p className="text-emerald-100 text-sm mt-1">Chúc bạn một ngày quản lý chi tiêu hiệu quả.</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                  <span className="text-xs font-bold text-slate-400 uppercase">Tổng Số Dư</span>
+                  <h3 className="text-2xl font-black text-slate-800 mt-2">{formatVND(stats.totalBalance)}</h3>
+                </div>
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                  <span className="text-xs font-bold text-slate-400 uppercase">Tổng Thu Tháng</span>
+                  <h3 className="text-2xl font-black text-blue-600 mt-2">+{formatVND(stats.totalIncome)}</h3>
+                </div>
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                  <span className="text-xs font-bold text-slate-400 uppercase">Tổng Chi Tháng</span>
+                  <h3 className="text-2xl font-black text-rose-600 mt-2">-{formatVND(stats.totalExpense)}</h3>
+                </div>
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                  <span className="text-xs font-bold text-slate-400 uppercase">Tích Lũy Tiết Kiệm</span>
+                  <h3 className="text-2xl font-black text-amber-600 mt-2">{formatVND(stats.totalGoal)}</h3>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: VÍ & TÀI KHOẢN */}
+          {activeTab === 'wallets' && (
+            <div className="space-y-4">
+              <h2 className="text-2xl font-black text-slate-800">Ví & Nguồn Tiền</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {wallets.map(w => (
+                  <div key={w.AccountId} className="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between h-40">
+                    <span className="text-xs font-bold uppercase text-slate-400">{w.AccountType}</span>
+                    <div>
+                      <p className="text-xs font-medium text-slate-500">{w.AccountName}</p>
+                      <h3 className="text-2xl font-black text-slate-800">{formatVND(w.Balance)}</h3>
+                    </div>
+                    <span className="text-[11px] text-emerald-600 font-bold">● Hoạt động</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: GIAO DỊCH */}
+          {activeTab === 'transactions' && (
+            <div className="space-y-4">
+              <h2 className="text-2xl font-black text-slate-800">Lịch Sử Giao Dịch</h2>
+              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 text-slate-500 uppercase border-b border-slate-200">
+                    <tr>
+                      <th className="p-3">Mã GD</th>
+                      <th className="p-3">Ngày</th>
+                      <th className="p-3">Ghi chú</th>
+                      <th className="p-3 text-right">Số tiền</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {transactions.map(t => (
+                      <tr key={t.TransactionId} className="hover:bg-slate-50">
+                        <td className="p-3 font-bold text-slate-800">#{t.TransactionId}</td>
+                        <td className="p-3 text-slate-400">{t.TransactionDate}</td>
+                        <td className="p-3 text-slate-500">{t.Note || '—'}</td>
+                        <td className="p-3 text-right font-black text-rose-600">-{formatVND(t.Amount)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: HẠN MỨC NGÂN SÁCH */}
+          {activeTab === 'budgets' && (
+            <div className="space-y-4">
+              <h2 className="text-2xl font-black text-slate-800">Hạn Mức Chi Tiêu (Budget)</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {budgets.map(b => (
+                  <div key={b.BudgetId} className="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                    <h4 className="font-bold text-slate-800 text-sm">Hạn mức danh mục #{b.CategoryId}</h4>
+                    <p className="text-xs text-slate-400">Tối đa: {formatVND(b.AmountLimit)}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 5: MỤC TIÊU TIẾT KIỆM */}
+          {activeTab === 'goals' && (
+            <div className="space-y-4">
+              <h2 className="text-2xl font-black text-slate-800">Mục Tiêu Tiết Kiệm (Goals)</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {goals.map(g => (
+                  <div key={g.GoalId} className="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                    <h4 className="font-bold text-slate-800 text-sm">{g.GoalName}</h4>
+                    <p className="text-xs text-amber-600 font-bold">Đã đạt: {formatVND(g.CurrentAmount)} / {formatVND(g.TargetAmount)}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
+    </div>
+  );
+};
+
+export default UserDashboard;
