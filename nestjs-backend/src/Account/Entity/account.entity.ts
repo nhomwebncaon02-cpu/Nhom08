@@ -1,6 +1,8 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { User } from '../../user/entities/user.entity';
+import { decimalTransformer } from '../../common/utils/decimal.transformer';
 
+// Account = Ví / Tài khoản ngân hàng (Wallet)
 @Entity('Account')
 export class Account {
   @PrimaryGeneratedColumn()
@@ -15,7 +17,7 @@ export class Account {
   @Column({ length: 50, nullable: true })
   AccountType: string;
 
-  @Column('decimal', { precision: 15, scale: 2, default: 0 })
+  @Column('decimal', { precision: 15, scale: 2, default: 0, transformer: decimalTransformer })
   Balance: number;
 
   @Column({ length: 10, default: 'VND' })
