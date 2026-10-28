@@ -182,3 +182,58 @@ curl -X POST localhost:3000/auth/register -H "Content-Type: application/json" \
 curl localhost:3000/users             # -> 401 (chưa đăng nhập)
 curl localhost:3000/users -H "Authorization: Bearer <token của user thường>"   # -> 403
 ```
+
+---
+
+# 4. Ví (Wallet) & Ngân sách (Budget)
+
+## 4.1. API
+
+Tất cả đều cần đăng nhập (`Authorization: Bearer <token>`), và chỉ thao tác trên dữ liệu của chính user.
+
+| Method | Endpoint | Mô tả |
+|---|---|---|
+| GET | `/accounts` | Danh sách ví |
+| GET | `/accounts/summary` | Tổng số dư theo loại tiền + số ví |
+| GET | `/accounts/:id` | Chi tiết 1 ví |
+| POST | `/accounts` | Tạo ví `{ AccountName, AccountType?, Balance?, Currency? }` |
+| PATCH | `/accounts/:id` | Sửa ví |
+| DELETE | `/accounts/:id` | Xoá ví (xoá luôn giao dịch của ví — ON DELETE CASCADE) |
+| GET | `/budgets` | Danh sách ngân sách, kèm `Spent`, `Remaining`, `Percent`, `Status` |
+| GET | `/budgets/alerts` | Ngân sách đang áp dụng đã ≥ 80% (`warning`) hoặc vượt (`exceeded`) |
+| POST | `/budgets/check` | Kiểm tra 1 khoản chi `{ CategoryId, Amount, Date? }` → `{ allowed, status, message }` |
+| GET | `/budgets/:id` | Chi tiết 1 ngân sách |
+| POST | `/budgets` | Tạo `{ CategoryId, AmountLimit, StartDate, EndDate }` (ngày dạng `YYYY-MM-DD`) |
+| PATCH | `/budgets/:id` | Sửa ngân sách |
+| DELETE | `/budgets/:id` | Xoá ngân sách |
+
+## 4.2. Logic hạn mức (Budget Alerts)
+
+- **Đã chi** = tổng `Transaction.Amount` của user, cùng danh mục, trong khoảng `StartDate` → `EndDate` (tính cả ngày cuối).
+- **Trạng thái**: `ok` (< 80%), `warning` (≥ 80%), `exceeded` (> 100%).
+- **Ràng buộc khi tạo/sửa ngân sách**: danh mục phải là loại *Expense*, ngày kết thúc ≥ ngày bắt đầu, không trùng thời gian với ngân sách khác của cùng danh mục.
+- **Chặn vượt hạn mức**: `BudgetService.assertWithinBudget()` ném lỗi `400 BUDGET_EXCEEDED` nếu khoản chi làm tổng vượt hạn mức.
+
+### Tích hợp vào phần Giao dịch (Transaction)
+
+```ts
+// transaction.module.ts
+imports: [TypeOrmModule.forFeature([Transaction]), BudgetModule],
+
+// transaction.service.ts — trước khi lưu một khoản CHI
+constructor(private readonly budgetService: BudgetService, ...) {}
+
+await this.budgetService.assertWithinBudget(userId, {
+  CategoryId: dto.CategoryId,
+  Amount: dto.Amount,
+  Date: dto.TransactionDate, // 'YYYY-MM-DD'
+});
+// -> vượt hạn mức thì ném lỗi 400, giao dịch không được lưu
+```
+
+## 4.3. Frontend
+
+- `src/pages/user/WalletsTab.jsx` — danh sách ví, tổng số dư, thêm/sửa/xoá ví.
+- `src/pages/user/BudgetsTab.jsx` — thiết lập ngân sách, thanh tiến độ theo trạng thái, lọc "Đang áp dụng / Tất cả", công cụ "Kiểm tra trước khi chi".
+- `src/pages/user/BudgetAlerts.jsx` — banner cảnh báo, hiện ở tab Tổng quan và tab Ngân sách.
+- `src/api/walletApi.js`, `src/api/budgetApi.js` — gọi API.
