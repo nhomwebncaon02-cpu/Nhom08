@@ -74,7 +74,7 @@ classDiagram
 
     class Category {
         +int CategoryId
-        +int? UserId
+        +int UserId
         +string CategoryName
         +string Type
         +string Icon
@@ -108,21 +108,21 @@ classDiagram
     }
 
     class TransactionController {
-        +create(user, dto)
-        +findAll(user, filters)
-        +findOne(user, id)
-        +update(user, id, dto)
-        +remove(user, id)
+        +create()
+        +findAll()
+        +findOne()
+        +update()
+        +remove()
     }
 
     class TransactionService {
-        +create(user, dto)
-        +findAll(user, filters)
-        +findOne(user, id)
-        +update(user, id, dto)
-        +remove(user, id)
-        -lockAccounts(manager, userId, accountIds)
-        -getVisibleCategory(manager, user, categoryId)
+        +create()
+        +findAll()
+        +findOne()
+        +update()
+        +remove()
+        -lockAccounts()
+        -getVisibleCategory()
     }
 
     User "1" --> "0..*" Account : owns
@@ -131,12 +131,14 @@ classDiagram
     User "1" -- "0..*" SavingGoal : tracks
     Account "1" <-- "0..*" Transaction : uses
     Category "1" <-- "0..*" Transaction : classifies
-    Category "1" -- "0..*" Budget : applies_to
+    Category "1" -- "0..*" Budget : applies to
     TransactionController --> TransactionService : delegates
     TransactionService ..> Transaction : persists
-    TransactionService ..> Account : updates_balance
-    TransactionService ..> Category : validates_type
+    TransactionService ..> Account : updates balance
+    TransactionService ..> Category : validates type
 ```
+
+`Category.UserId` có thể rỗng đối với danh mục mặc định của hệ thống.
 
 ### 2.5. Sơ đồ thuật toán
 
