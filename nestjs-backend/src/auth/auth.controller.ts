@@ -1,10 +1,32 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, Get, HttpCode, HttpStatus } from '@nestjs/common';
 import { AuthService } from './auth.service';
+import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
+import { Public } from './decorators/public.decorator';
+import { CurrentUser, JwtUser } from './decorators/current-user.decorator';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  /** POST /auth/register  { fullName, username, email, password } */
+  @Public()
+  @Post('register')
+  register(@Body() dto: RegisterDto) {
+    return this.authService.register(dto);
+  }
+
+  /** POST /auth/login  { username (hoặc email), password } -> { access_token, user } */
+  @Public()
   @Post('login')
-  login(@Body() body: any) {
-    return this.authService.login(body);}
+  @HttpCode(HttpStatus.OK)
+  login(@Body() dto: LoginDto) {
+    return this.authService.login(dto);
+  }
+
+  /** GET /auth/me  (Header: Authorization: Bearer <token>) -> thông tin user hiện tại */
+  @Get('me')
+  me(@CurrentUser() user: JwtUser) {
+    return this.authService.me(user.userId);
+  }
 }

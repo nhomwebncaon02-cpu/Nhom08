@@ -1,18 +1,19 @@
 import { Controller, Get, Post, Body } from '@nestjs/common';
 import { AccountService } from './account.service';
-import { Account } from './Entity/account.entity';
+import { CreateAccountDto } from './dto/create-account.dto';
+import { CurrentUser, JwtUser } from '../auth/decorators/current-user.decorator';
 
 @Controller('accounts')
 export class AccountController {
   constructor(private readonly accountService: AccountService) {}
 
   @Get()
-  findAll(): Promise<Account[]> {
-    return this.accountService.findAll();
+  findMine(@CurrentUser() user: JwtUser) {
+    return this.accountService.findAllByUser(user.userId);
   }
 
   @Post()
-  create(@Body() accountData: Partial<Account>): Promise<Account> {
-    return this.accountService.create(accountData);
+  create(@CurrentUser() user: JwtUser, @Body() dto: CreateAccountDto) {
+    return this.accountService.create(user.userId, dto);
   }
 }

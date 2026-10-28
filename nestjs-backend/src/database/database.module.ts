@@ -1,18 +1,23 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
+// Thông tin kết nối đọc từ .env — KHÔNG hard-code mật khẩu trong source code
 @Module({
   imports: [
-    TypeOrmModule.forRoot({
-      type: 'mysql',
-      host: 'mysql-22862ebb-st-b044.c.aivencloud.com', 
-      port: 26138, 
-      username: 'avnadmin',
-      password: 'AVNS_E9h0ZzTSczKnkdm0PKE',
-      database: 'QUANLYCHITIEU',
-      entities: [__dirname + '/../**/*.entity{.ts,.js}'],
-      synchronize: false,  
-      autoLoadEntities: true,
+    TypeOrmModule.forRootAsync({
+      useFactory: () => ({
+        type: 'mysql' as const,
+        host: process.env.DB_HOST,
+        port: Number(process.env.DB_PORT ?? 3306),
+        username: process.env.DB_USERNAME,
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME ?? 'QUANLYCHITIEU',
+        entities: [__dirname + '/../**/*.entity{.ts,.js}'],
+        synchronize: false,
+        autoLoadEntities: true,
+        // Đặt DB_SSL=true nếu server MySQL yêu cầu kết nối SSL
+        ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
+      }),
     }),
   ],
 })

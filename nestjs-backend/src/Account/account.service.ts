@@ -1,20 +1,23 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Account } from './Entity/account.entity';
+import { CreateAccountDto } from './dto/create-account.dto';
 
 @Injectable()
 export class AccountService {
   constructor(
-    @Inject('ACCOUNT_REPOSITORY')
+    @InjectRepository(Account)
     private accountRepository: Repository<Account>,
   ) {}
 
-  async findAll(): Promise<Account[]> {
-    return this.accountRepository.find();
+  /** Chỉ lấy ví của user đang đăng nhập */
+  async findAllByUser(userId: number): Promise<Account[]> {
+    return this.accountRepository.find({ where: { UserId: userId } });
   }
 
-  async create(accountData: Partial<Account>): Promise<Account> {
-    const account = this.accountRepository.create(accountData);
+  async create(userId: number, dto: CreateAccountDto): Promise<Account> {
+    const account = this.accountRepository.create({ ...dto, UserId: userId });
     return this.accountRepository.save(account);
   }
-} 
+}
