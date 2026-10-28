@@ -8,6 +8,7 @@ CREATE TABLE User (
     PasswordHash VARCHAR(255) NOT NULL,
     Email VARCHAR(100) NOT NULL UNIQUE,
     FullName VARCHAR(100) NOT NULL,
+    Role ENUM('user', 'admin') NOT NULL DEFAULT 'user',
     CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 

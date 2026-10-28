@@ -2,7 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, JoinColum
 import { User } from '../user/entities/user.entity';
 import { Transaction } from '../transaction/transaction.entity';
 
-@Entity('categories')
+@Entity('Category') // khớp tên bảng trong file .sql (trước là 'categories')
 export class Category {
   @PrimaryGeneratedColumn()
   categoryId: number;
