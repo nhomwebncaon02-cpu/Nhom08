@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/entities/user.module';
 import { CategoryModule } from './category/category.module';
 import { AccountModule } from './Account/account.module';
+import { BudgetModule } from './budget/budget.module';
 
 @Module({
   imports: [
@@ -14,7 +15,8 @@ import { AccountModule } from './Account/account.module';
     AuthModule, // chứa guard JWT + Role toàn cục
     UserModule,
     CategoryModule,
-    AccountModule,
+    AccountModule, // Ví (Wallet)
+    BudgetModule, // Ngân sách + cảnh báo hạn mức
     TransactionModule,
   ],
   controllers: [AppController],

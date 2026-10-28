@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import WalletsTab from './user/WalletsTab';
+import BudgetsTab from './user/BudgetsTab';
+import BudgetAlerts from './user/BudgetAlerts';
+import { walletApi } from '../api/walletApi';
 
 const UserDashboard = () => {
   const navigate = useNavigate();
@@ -9,31 +13,35 @@ const UserDashboard = () => {
   
   // State dữ liệu mô phỏng theo localStorage
   const [stats, setStats] = useState({ totalBalance: 0, totalIncome: 0, totalExpense: 0, totalGoal: 0 });
-  const [wallets, setWallets] = useState([]);
   const [transactions, setTransactions] = useState([]);
-  const [budgets, setBudgets] = useState([]);
   const [goals, setGoals] = useState([]);
+  const [refreshKey, setRefreshKey] = useState(0); // tăng lên khi ví/ngân sách thay đổi -> tải lại tổng quan
 
   useEffect(() => {
-    // TODO: thay dữ liệu mock localStorage bằng API: api.get('/accounts'), api.get('/categories')...
     if (currentUser) loadData(currentUser);
-  }, [currentUser]);
+  }, [currentUser, refreshKey]);
 
-  const loadData = (user) => {
-    const allAccounts = JSON.parse(localStorage.getItem('SM_ACCOUNTS') || '[]').filter(a => a.UserId === user.UserId);
-    const myAccIds = allAccounts.map(a => a.AccountId);
-    const allTrans = JSON.parse(localStorage.getItem('SM_TRANSACTIONS') || '[]').filter(t => myAccIds.includes(t.AccountId));
-    const allBudgets = JSON.parse(localStorage.getItem('SM_BUDGETS') || '[]').filter(b => b.UserId === user.UserId);
+  const loadData = async (user) => {
+    // Ví: lấy từ API thật (GET /accounts)
+    let totalBalance = 0;
+    try {
+      const wallets = await walletApi.list();
+      totalBalance = wallets.filter((w) => (w.Currency || 'VND') === 'VND').reduce((sum, w) => sum + Number(w.Balance), 0);
+    } catch {
+      totalBalance = 0;
+    }
+
+    // TODO (phần Giao dịch / Mục tiêu): vẫn đang là dữ liệu mock trong localStorage
+    const mockAccIds = JSON.parse(localStorage.getItem('SM_ACCOUNTS') || '[]').filter(a => a.UserId === user.UserId).map(a => a.AccountId);
+    const allTrans = JSON.parse(localStorage.getItem('SM_TRANSACTIONS') || '[]').filter(t => mockAccIds.includes(t.AccountId));
     const allGoals = JSON.parse(localStorage.getItem('SM_GOALS') || '[]').filter(g => g.UserId === user.UserId);
-
-    setWallets(allAccounts);
     setTransactions(allTrans);
-    setBudgets(allBudgets);
     setGoals(allGoals);
 
-    const totalBalance = allAccounts.reduce((sum, a) => sum + Number(a.Balance), 0);
     setStats({ totalBalance, totalIncome: 22000000, totalExpense: 9500000, totalGoal: 22500000 });
   };
+
+  const handleDataChanged = () => setRefreshKey((k) => k + 1);
 
   const handleLogout = () => {
     if (window.confirm('Bạn có chắc chắn muốn đăng xuất?')) {
@@ -115,6 +123,9 @@ const UserDashboard = () => {
                 </div>
               </div>
 
+              {/* Cảnh báo ngân sách (Budget Alerts) */}
+              <BudgetAlerts refreshKey={refreshKey} onViewAll={() => setActiveTab('budgets')} />
+
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                   <span className="text-xs font-bold text-slate-400 uppercase">Tổng Số Dư</span>
@@ -137,23 +148,7 @@ const UserDashboard = () => {
           )}
 
           {/* TAB 2: VÍ & TÀI KHOẢN */}
-          {activeTab === 'wallets' && (
-            <div className="space-y-4">
-              <h2 className="text-2xl font-black text-slate-800">Ví & Nguồn Tiền</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {wallets.map(w => (
-                  <div key={w.AccountId} className="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between h-40">
-                    <span className="text-xs font-bold uppercase text-slate-400">{w.AccountType}</span>
-                    <div>
-                      <p className="text-xs font-medium text-slate-500">{w.AccountName}</p>
-                      <h3 className="text-2xl font-black text-slate-800">{formatVND(w.Balance)}</h3>
-                    </div>
-                    <span className="text-[11px] text-emerald-600 font-bold">● Hoạt động</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {activeTab === 'wallets' && <WalletsTab onChanged={handleDataChanged} />}
 
           {/* TAB 3: GIAO DỊCH */}
           {activeTab === 'transactions' && (
@@ -185,19 +180,7 @@ const UserDashboard = () => {
           )}
 
           {/* TAB 4: HẠN MỨC NGÂN SÁCH */}
-          {activeTab === 'budgets' && (
-            <div className="space-y-4">
-              <h2 className="text-2xl font-black text-slate-800">Hạn Mức Chi Tiêu (Budget)</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {budgets.map(b => (
-                  <div key={b.BudgetId} className="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-3">
-                    <h4 className="font-bold text-slate-800 text-sm">Hạn mức danh mục #{b.CategoryId}</h4>
-                    <p className="text-xs text-slate-400">Tối đa: {formatVND(b.AmountLimit)}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {activeTab === 'budgets' && <BudgetsTab onChanged={handleDataChanged} />}
 
           {/* TAB 5: MỤC TIÊU TIẾT KIỆM */}
           {activeTab === 'goals' && (
