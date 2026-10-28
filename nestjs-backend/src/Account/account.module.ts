@@ -1,11 +1,14 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { AccountController } from './account.controller';
 import { AccountService } from './account.service';
-import { accountProviders } from './account.provider';
-import { DatabaseModule } from '../database/database.module';
+import { Account } from './Entity/account.entity';
+
+// Trước đây dùng provider 'DATA_SOURCE' (không tồn tại) -> module sẽ crash nếu được import.
+// Đổi sang TypeOrmModule.forFeature giống các module khác.
 @Module({
-  imports: [DatabaseModule],
+  imports: [TypeOrmModule.forFeature([Account])],
   controllers: [AccountController],
-  providers: [...accountProviders, AccountService],
+  providers: [AccountService],
 })
-export class AccountModule {} 
+export class AccountModule {}

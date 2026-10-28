@@ -1,15 +1,20 @@
-import { Controller, Get, Post, Body, Param, Put, Delete } from '@nestjs/common';
+import {
+  Controller, Get, Body, Param, Put, Delete, ParseIntPipe, NotFoundException, ForbiddenException,
+} from '@nestjs/common';
 import { UserService } from './user.service';
-import { User } from './user.entity';
+import { UpdateUserDto } from '../dto/update-user.dto';
+import { Roles } from '../../auth/decorators/roles.decorator';
+import { CurrentUser, JwtUser } from '../../auth/decorators/current-user.decorator';
 
-@Controller('users') 
+/**
+ * Quản lý người dùng — CHỈ ADMIN.
+ * (Đã bỏ POST /users vì cho phép tạo user với PasswordHash tùy ý.
+ *  Người dùng mới phải đi qua POST /auth/register để mật khẩu được băm.)
+ */
+@Roles('admin')
+@Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
-
-  @Post()
-  create(@Body() userData: Partial<User>) {
-    return this.userService.create(userData);
-  }
 
   @Get()
   findAll() {
@@ -17,17 +22,21 @@ export class UserController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.userService.findOne(id);
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    const user = await this.userService.findOne(id);
+    if (!user) throw new NotFoundException(`Không tìm thấy người dùng ID: ${id}`);
+    return user;
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() updateData: Partial<User>) {
-    return this.userService.update(id, updateData);
+  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateUserDto) {
+    return this.userService.update(id, dto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.userService.remove(id);
+  async remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() me: JwtUser) {
+    if (me.userId === id) throw new ForbiddenException('Không thể tự xóa tài khoản admin đang đăng nhập');
+    await this.userService.remove(id);
+    return { message: 'Đã xóa người dùng' };
   }
 }
