@@ -37,21 +37,30 @@
 * **Category – Budget (1 - N):** Một ngân sách được gắn liền với một danh mục cụ thể.
 * **User – SavingGoal (1 - N):** Một người dùng có thể khởi tạo nhiều mục tiêu tiết kiệm.
 
+### 2.3. Phương thức hoạt động và yêu cầu nghiệp vụ
+
+| Đối tượng | Phương thức/nghiệp vụ chính |
+|---|---|
+| `Transaction` | Tạo, đọc, cập nhật, xóa giao dịch; lọc theo ví, danh mục, loại thu/chi và khoảng ngày. |
+| `Account` | Cung cấp ví thuộc người dùng hiện tại; số dư được cộng khi thu, trừ khi chi và hoàn nguyên khi giao dịch bị sửa/xóa. |
+| `Category` | Phân loại giao dịch là `Income` hoặc `Expense`; người dùng chỉ chọn danh mục hệ thống hoặc danh mục của mình. |
+| `User` | Xác thực bằng JWT; `UserId` trong token là căn cứ xác định chủ sở hữu dữ liệu, không nhận `UserId` từ trình duyệt. |
+| `TransactionService` | Kiểm tra quyền sở hữu ví/danh mục, lọc dữ liệu và cập nhật giao dịch cùng số dư trong một transaction của CSDL. |
+
+Yêu cầu chính: từ chối dữ liệu sai định dạng; không cho tạo giao dịch vào ví người khác; không làm lộ giao dịch giữa các người dùng; các thay đổi giao dịch và số dư phải được commit/rollback đồng thời.
+
 ---
 
-## 2.3. Sơ đồ lớp UML (Class Diagram)
+## 2.4. Sơ đồ lớp UML (Class Diagram)
 
 ```mermaid
 classDiagram
     class User {
         +int UserId
         +string Username
-        +string PasswordHash
         +string Email
         +string FullName
-        +DateTime CreatedAt
-        +register()
-        +login()
+        +string Role
     }
 
     class Account {
@@ -61,12 +70,11 @@ classDiagram
         +string AccountType
         +decimal Balance
         +string Currency
-        +updateBalance()
     }
 
     class Category {
         +int CategoryId
-        +int UserId
+        +int? UserId
         +string CategoryName
         +string Type
         +string Icon
@@ -79,7 +87,6 @@ classDiagram
         +decimal Amount
         +DateTime TransactionDate
         +string Note
-        +addTransaction()
     }
 
     class Budget {
@@ -89,7 +96,6 @@ classDiagram
         +decimal AmountLimit
         +DateTime StartDate
         +DateTime EndDate
-        +checkOverbudget()
     }
 
     class SavingGoal {
@@ -99,16 +105,142 @@ classDiagram
         +decimal TargetAmount
         +decimal CurrentAmount
         +DateTime TargetDate
-        +deposit()
     }
 
-    User "1" -- "0..*" Account : owns
-    User "1" -- "0..*" Category : creates
+    class TransactionController {
+        +create(user, dto)
+        +findAll(user, filters)
+        +findOne(user, id)
+        +update(user, id, dto)
+        +remove(user, id)
+    }
+
+    class TransactionService {
+        +create(user, dto)
+        +findAll(user, filters)
+        +findOne(user, id)
+        +update(user, id, dto)
+        +remove(user, id)
+        -lockAccounts(manager, userId, accountIds)
+        -getVisibleCategory(manager, user, categoryId)
+    }
+
+    User "1" --> "0..*" Account : owns
+    User "1" --> "0..*" Category : creates
     User "1" -- "0..*" Budget : sets
     User "1" -- "0..*" SavingGoal : tracks
-    Account "1" -- "0..*" Transaction : contains
-    Category "1" -- "0..*" Transaction : classifies
+    Account "1" <-- "0..*" Transaction : uses
+    Category "1" <-- "0..*" Transaction : classifies
     Category "1" -- "0..*" Budget : applies_to
+    TransactionController --> TransactionService : delegates
+    TransactionService ..> Transaction : persists
+    TransactionService ..> Account : updates_balance
+    TransactionService ..> Category : validates_type
+```
+
+### 2.5. Sơ đồ thuật toán
+
+**Lọc danh sách giao dịch** (mọi điều kiện là tùy chọn; phạm vi dữ liệu luôn bị giới hạn bởi `UserId` trong JWT):
+
+```mermaid
+flowchart TD
+    A([Bắt đầu]) --> B[Nhận JWT và tham số lọc]
+    B --> C{JWT hợp lệ?}
+    C -- Không --> X[Trả 401]
+    C -- Có --> D[Khởi tạo QueryBuilder]
+    D --> E[Join Account, Category; thêm điều kiện Account.UserId = JWT.UserId]
+    E --> F{Có lọc ví, danh mục, loại hoặc ngày?}
+    F -- Có --> G[Thêm điều kiện tương ứng bằng tham số]
+    F -- Không --> H[Sắp xếp ngày và mã giao dịch giảm dần]
+    G --> H
+    H --> I[Thực thi truy vấn]
+    I --> J[Trả danh sách giao dịch của người dùng]
+    J --> K([Kết thúc])
+```
+
+**Tạo giao dịch**:
+
+```mermaid
+flowchart TD
+    A([Bắt đầu]) --> B[Nhận DTO và JWT]
+    B --> C{DTO hợp lệ?}
+    C -- Không --> X[Trả 400]
+    C -- Có --> D[Bắt đầu database transaction]
+    D --> E[Khóa và tìm ví theo AccountId + JWT.UserId]
+    E --> F{Ví thuộc người dùng?}
+    F -- Không --> R[Rollback và trả 404]
+    F -- Có --> G[Tìm danh mục hệ thống hoặc danh mục của người dùng]
+    G --> H{Danh mục được phép sử dụng?}
+    H -- Không --> R
+    H -- Có --> I[Lưu giao dịch]
+    I --> J[Cộng số dư nếu Income, trừ nếu Expense]
+    J --> K{Commit thành công?}
+    K -- Không --> R
+    K -- Có --> L[Trả giao dịch kèm ví và danh mục]
+    L --> M([Kết thúc])
+```
+
+---
+
+## 2.6. Báo cáo cấu trúc phân lớp NestJS
+
+Backend chia trách nhiệm theo lớp, tránh để frontend truy cập trực tiếp CSDL:
+
+| Lớp | Trách nhiệm | Thành phần |
+|---|---|---|
+| HTTP / Controller | Nhận route, JWT user, DTO và query; chuyển tiếp tới service. | `src/transaction/transaction.controller.ts` |
+| Validation / DTO | Ràng buộc kiểu, số tiền dương, mã số, ngày, ghi chú; loại bỏ field không khai báo bởi `ValidationPipe`. | `src/transaction/dto/*.ts` |
+| Nghiệp vụ / Service | Kiểm tra chủ sở hữu ví, quyền sử dụng danh mục; lọc bằng QueryBuilder; cập nhật giao dịch và số dư trong database transaction. | `src/transaction/transaction.service.ts` |
+| Mô hình dữ liệu / Entity | Ánh xạ `Transaction`, `Account`, `Category` và quan hệ khóa ngoại. | `src/transaction/transaction.entity.ts`, `src/Account/Entity/account.entity.ts`, `src/category/category.entity.ts` |
+| Truy cập dữ liệu | Repository/EntityManager TypeORM, kết nối MySQL từ biến môi trường; không bật `synchronize` trên CSDL. | `src/database/database.module.ts` |
+| Bảo vệ API | Guard JWT toàn cục, CORS allowlist, Helmet, sanitize và validation. | `src/auth/guards/`, `src/main.ts` |
+
+Frontend React chỉ gọi API qua `src/api/axiosClient.js`; Axios lấy token từ session hiện tại và gắn `Authorization` trong request interceptor. Token không được đưa vào URL, query string hay dữ liệu hiển thị. Backend vẫn là nơi xác thực token và quyết định quyền truy cập; việc ẩn giao diện ở frontend không thay thế kiểm tra quyền trên API.
+
+## 2.7. Luồng xử lý thông tin chính (3b)
+
+```mermaid
+sequenceDiagram
+    actor User as Người dùng
+    participant React as React TransactionsTab
+    participant Axios as Axios Client
+    participant Guard as NestJS JWT Guard
+    participant Controller as TransactionController
+    participant Service as TransactionService
+    participant DB as MySQL / TypeORM
+
+    User->>React: Mở sổ giao dịch / nhập điều kiện lọc
+    React->>Axios: GET /transactions?filters
+    Axios->>Axios: Đính kèm JWT trong Authorization
+    Axios->>Guard: Gửi HTTP request
+    Guard->>Guard: Xác minh JWT, trích UserId
+    Guard->>Controller: Cho phép request hợp lệ
+    Controller->>Service: findAll(user, filters)
+    Service->>DB: QueryBuilder + điều kiện Account.UserId
+    DB-->>Service: Giao dịch + ví + danh mục phù hợp
+    Service-->>React: JSON kết quả
+    React-->>User: Hiển thị danh sách và kết quả lọc
+
+    User->>React: Gửi form thêm giao dịch
+    React->>Axios: POST /transactions (DTO)
+    Axios->>Guard: Gửi request có JWT
+    Guard->>Controller: Xác thực và chuyển tiếp
+    Controller->>Service: create(user, dto)
+    Service->>DB: Khóa ví, kiểm tra quyền, lưu giao dịch, cập nhật số dư
+    DB-->>Service: Commit hoặc rollback đồng bộ
+    Service-->>React: Giao dịch đã lưu hoặc lỗi rõ ràng
+    React-->>User: Thông báo và tải lại danh sách
+```
+
+Các endpoint giao dịch (đều yêu cầu JWT):
+
+| Method | Endpoint | Mô tả |
+|---|---|---|
+| GET | `/transactions` | Danh sách; hỗ trợ `AccountId`, `CategoryId`, `Type`, `FromDate`, `ToDate`. |
+| GET | `/transactions/:id` | Chi tiết giao dịch thuộc ví của người dùng. |
+| POST | `/transactions` | Tạo giao dịch, trường nhận gồm `AccountId`, `CategoryId`, `Amount`, `TransactionDate?`, `Note?`. |
+| PATCH | `/transactions/:id` | Cập nhật giao dịch thuộc ví của người dùng. |
+| DELETE | `/transactions/:id` | Xóa giao dịch và hoàn nguyên số dư ví. |
 
 ---
 

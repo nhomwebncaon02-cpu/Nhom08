@@ -1,4 +1,5 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, OneToMany } from 'typeorm';
+import { Category } from '../../category/category.entity';
 
 export type UserRole = 'user' | 'admin';
 
@@ -28,4 +29,7 @@ export class User {
 
   @CreateDateColumn()
   CreatedAt: Date;
+
+  @OneToMany(() => Category, (category) => category.user)
+  categories: Category[];
 }

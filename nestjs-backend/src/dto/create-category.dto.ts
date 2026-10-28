@@ -9,7 +9,7 @@ export class CreateCategoryDto {
   categoryName: string;
 
   @IsIn(['Income', 'Expense'], { message: 'Loại danh mục phải là Income hoặc Expense' })
-  type: string;
+  type: 'Income' | 'Expense';
 
   @IsOptional()
   @IsString()

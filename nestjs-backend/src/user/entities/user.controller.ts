@@ -4,7 +4,8 @@ import {
 import { UserService } from './user.service';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { Roles } from '../../auth/decorators/roles.decorator';
-import { CurrentUser, JwtUser } from '../../auth/decorators/current-user.decorator';
+import { CurrentUser } from '../../auth/decorators/current-user.decorator';
+import type { JwtUser } from '../../auth/decorators/current-user.decorator';
 
 /**
  * Quản lý người dùng — CHỈ ADMIN.

@@ -1,4 +1,9 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { Category } from './category.entity';
@@ -15,8 +20,10 @@ export class CategoryService {
 
   async create(user: JwtUser, dto: CreateCategoryDto): Promise<Category> {
     const newCategory = this.categoryRepository.create({
-      ...dto,
-      userId: user.role === 'admin' ? (null as any) : user.userId,
+      categoryName: dto.categoryName,
+      type: dto.type,
+      icon: dto.icon,
+      userId: user.role === 'admin' ? null : user.userId,
     });
     return this.categoryRepository.save(newCategory);
   }
@@ -40,6 +47,16 @@ export class CategoryService {
   async update(user: JwtUser, id: number, dto: UpdateCategoryDto): Promise<Category> {
     const category = await this.findOne(user, id);
     this.assertCanModify(user, category);
+    if (dto.type && dto.type !== category.type) {
+      const transactionCount = await this.categoryRepository
+        .createQueryBuilder('category')
+        .innerJoin('category.transactions', 'transaction')
+        .where('category.categoryId = :id', { id })
+        .getCount();
+      if (transactionCount > 0) {
+        throw new BadRequestException('Không thể đổi loại danh mục đã được dùng trong giao dịch');
+      }
+    }
     Object.assign(category, dto);
     return this.categoryRepository.save(category);
   }

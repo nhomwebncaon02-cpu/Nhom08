@@ -3,7 +3,8 @@ import { BudgetService } from './budget.service';
 import { CreateBudgetDto } from './dto/create-budget.dto';
 import { UpdateBudgetDto } from './dto/update-budget.dto';
 import { CheckExpenseDto } from './dto/check-expense.dto';
-import { CurrentUser, JwtUser } from '../auth/decorators/current-user.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { JwtUser } from '../auth/decorators/current-user.decorator';
 
 /** CRUD Ngân sách (Budget) + Cảnh báo vượt hạn mức */
 @Controller('budgets')

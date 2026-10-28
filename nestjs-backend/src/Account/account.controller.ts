@@ -2,7 +2,8 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe } from 
 import { AccountService } from './account.service';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { UpdateAccountDto } from './dto/update-account.dto';
-import { CurrentUser, JwtUser } from '../auth/decorators/current-user.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { JwtUser } from '../auth/decorators/current-user.decorator';
 
 /** CRUD Ví (Wallet) — mọi thao tác chỉ áp dụng cho ví của user đang đăng nhập */
 @Controller('accounts')

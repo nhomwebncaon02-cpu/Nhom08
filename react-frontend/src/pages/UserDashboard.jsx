@@ -1,45 +1,66 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import WalletsTab from './user/WalletsTab';
 import BudgetsTab from './user/BudgetsTab';
 import BudgetAlerts from './user/BudgetAlerts';
 import { walletApi } from '../api/walletApi';
+import { transactionApi } from '../api/transactionApi';
+import TransactionsTab from './user/TransactionsTab';
+import { getErrorMessage } from '../api/axiosClient';
 
 const UserDashboard = () => {
   const navigate = useNavigate();
   const { user: currentUser, logout } = useAuth(); // user lấy từ JWT session (ProtectedRoute đã đảm bảo đã đăng nhập)
   const [activeTab, setActiveTab] = useState('dashboard');
   
-  // State dữ liệu mô phỏng theo localStorage
   const [stats, setStats] = useState({ totalBalance: 0, totalIncome: 0, totalExpense: 0, totalGoal: 0 });
-  const [transactions, setTransactions] = useState([]);
   const [goals, setGoals] = useState([]);
+  const [dashboardError, setDashboardError] = useState('');
   const [refreshKey, setRefreshKey] = useState(0); // tăng lên khi ví/ngân sách thay đổi -> tải lại tổng quan
 
-  useEffect(() => {
-    if (currentUser) loadData(currentUser);
-  }, [currentUser, refreshKey]);
-
-  const loadData = async (user) => {
-    // Ví: lấy từ API thật (GET /accounts)
-    let totalBalance = 0;
+  const loadData = useCallback(async (user) => {
     try {
-      const wallets = await walletApi.list();
-      totalBalance = wallets.filter((w) => (w.Currency || 'VND') === 'VND').reduce((sum, w) => sum + Number(w.Balance), 0);
-    } catch {
-      totalBalance = 0;
+      const [wallets, allTransactions] = await Promise.all([walletApi.list(), transactionApi.list()]);
+      const vndWalletIds = new Set(
+        wallets.filter((wallet) => (wallet.Currency || 'VND') === 'VND').map((wallet) => wallet.AccountId),
+      );
+      const month = new Date().toISOString().slice(0, 7);
+      const monthTransactions = allTransactions.filter(
+        (transaction) => String(transaction.TransactionDate).slice(0, 7) === month && vndWalletIds.has(transaction.AccountId),
+      );
+      const totalBalance = wallets
+        .filter((wallet) => (wallet.Currency || 'VND') === 'VND')
+        .reduce((sum, wallet) => sum + Number(wallet.Balance), 0);
+      const totalIncome = monthTransactions
+        .filter((transaction) => transaction.category?.type === 'Income')
+        .reduce((sum, transaction) => sum + Number(transaction.Amount), 0);
+      const totalExpense = monthTransactions
+        .filter((transaction) => transaction.category?.type === 'Expense')
+        .reduce((sum, transaction) => sum + Number(transaction.Amount), 0);
+
+      const allGoals = JSON.parse(localStorage.getItem('SM_GOALS') || '[]')
+        .filter((goal) => goal.UserId === user.UserId);
+      const totalGoal = allGoals.reduce((sum, goal) => sum + Number(goal.CurrentAmount || 0), 0);
+      setDashboardError('');
+      setGoals(allGoals);
+      setStats({ totalBalance, totalIncome, totalExpense, totalGoal });
+    } catch (error) {
+      setDashboardError(getErrorMessage(error, 'Không thể tải dữ liệu tổng quan.'));
     }
+  }, []);
 
-    // TODO (phần Giao dịch / Mục tiêu): vẫn đang là dữ liệu mock trong localStorage
-    const mockAccIds = JSON.parse(localStorage.getItem('SM_ACCOUNTS') || '[]').filter(a => a.UserId === user.UserId).map(a => a.AccountId);
-    const allTrans = JSON.parse(localStorage.getItem('SM_TRANSACTIONS') || '[]').filter(t => mockAccIds.includes(t.AccountId));
-    const allGoals = JSON.parse(localStorage.getItem('SM_GOALS') || '[]').filter(g => g.UserId === user.UserId);
-    setTransactions(allTrans);
-    setGoals(allGoals);
-
-    setStats({ totalBalance, totalIncome: 22000000, totalExpense: 9500000, totalGoal: 22500000 });
-  };
+  useEffect(() => {
+    if (!currentUser) return undefined;
+    let active = true;
+    void Promise.resolve().then(() => {
+      if (active) return loadData(currentUser);
+      return undefined;
+    });
+    return () => {
+      active = false;
+    };
+  }, [currentUser, refreshKey, loadData]);
 
   const handleDataChanged = () => setRefreshKey((k) => k + 1);
 
@@ -116,6 +137,7 @@ const UserDashboard = () => {
           {/* TAB 1: DASHBOARD */}
           {activeTab === 'dashboard' && (
             <div className="space-y-6">
+              {dashboardError && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{dashboardError}</p>}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-emerald-600 to-teal-700 p-6 rounded-3xl text-white shadow-xl">
                 <div>
                   <h2 className="text-2xl font-black">Xin chào, {currentUser?.FullName}! 👋</h2>
@@ -151,33 +173,7 @@ const UserDashboard = () => {
           {activeTab === 'wallets' && <WalletsTab onChanged={handleDataChanged} />}
 
           {/* TAB 3: GIAO DỊCH */}
-          {activeTab === 'transactions' && (
-            <div className="space-y-4">
-              <h2 className="text-2xl font-black text-slate-800">Lịch Sử Giao Dịch</h2>
-              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 text-slate-500 uppercase border-b border-slate-200">
-                    <tr>
-                      <th className="p-3">Mã GD</th>
-                      <th className="p-3">Ngày</th>
-                      <th className="p-3">Ghi chú</th>
-                      <th className="p-3 text-right">Số tiền</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {transactions.map(t => (
-                      <tr key={t.TransactionId} className="hover:bg-slate-50">
-                        <td className="p-3 font-bold text-slate-800">#{t.TransactionId}</td>
-                        <td className="p-3 text-slate-400">{t.TransactionDate}</td>
-                        <td className="p-3 text-slate-500">{t.Note || '—'}</td>
-                        <td className="p-3 text-right font-black text-rose-600">-{formatVND(t.Amount)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+          {activeTab === 'transactions' && <TransactionsTab onChanged={handleDataChanged} />}
 
           {/* TAB 4: HẠN MỨC NGÂN SÁCH */}
           {activeTab === 'budgets' && <BudgetsTab onChanged={handleDataChanged} />}

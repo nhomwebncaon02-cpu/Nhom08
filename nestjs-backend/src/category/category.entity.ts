@@ -8,18 +8,18 @@ export class Category {
   categoryId: number;
 
   @Column({ nullable: true })
-  userId: number;
+  userId: number | null;
 
   @Column({ length: 100 })
   categoryName: string;
 
-  @Column({ enum: ['Income', 'Expense'] })
-  type: string;
+  @Column({ type: 'enum', enum: ['Income', 'Expense'] })
+  type: 'Income' | 'Expense';
 
   @Column({ length: 50, nullable: true })
   icon: string;
 
-  @ManyToOne(() => User, (user: any) => user.categories, { onDelete: 'CASCADE', nullable: true })
+  @ManyToOne(() => User, (user: any) => user.categories, { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'userId' })
   user: User;
 

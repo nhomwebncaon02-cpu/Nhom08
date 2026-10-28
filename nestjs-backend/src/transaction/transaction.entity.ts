@@ -1,27 +1,33 @@
-import { Entity, Column, PrimaryColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Account } from '../Account/Entity/account.entity';
 import { Category } from '../category/category.entity';
+import { decimalTransformer } from '../common/utils/decimal.transformer';
 
 @Entity('Transaction')
 export class Transaction {
-  @PrimaryColumn()
+  @PrimaryGeneratedColumn()
   TransactionId: number;
 
-  @Column({ length: 15 })
-  AccountId: string;
+  @Column()
+  AccountId: number;
+
+  @ManyToOne(() => Account, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'AccountId' })
+  account: Account;
 
   @Column()
   CategoryId: number;
 
-  @ManyToOne(() => Category, (category: any) => category.transactions)
-  @JoinColumn({ name: 'CategoryId' }) 
-  category: Category; 
+  @ManyToOne(() => Category)
+  @JoinColumn({ name: 'CategoryId' })
+  category: Category;
 
-  @Column('decimal')
+  @Column('decimal', { precision: 15, scale: 2, transformer: decimalTransformer })
   Amount: number;
 
-  @Column({ type: 'date' })
-  TransactionDate: string;
+  @Column({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
+  TransactionDate: Date;
 
   @Column({ length: 255, nullable: true })
-  Note: string;
+  Note: string | null;
 }

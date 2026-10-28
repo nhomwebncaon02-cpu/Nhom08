@@ -19,7 +19,7 @@ async function bootstrap() {
     .filter(Boolean);
 
   app.enableCors({
-    origin: (origin, callback) => {
+    origin: (origin: string | undefined, callback: (error: Error | null, allowed?: boolean) => void) => {
       // Cho phép request không có Origin (Postman, curl, server-to-server)
       if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
       return callback(new Error(`CORS: origin ${origin} không được phép`), false);
@@ -51,4 +51,7 @@ async function bootstrap() {
   await app.listen(port);
   console.log(`🚀 API đang chạy tại http://localhost:${port}`);
 }
-bootstrap();
+bootstrap().catch((error: unknown) => {
+  console.error('Không thể khởi động API:', error);
+  process.exitCode = 1;
+});
