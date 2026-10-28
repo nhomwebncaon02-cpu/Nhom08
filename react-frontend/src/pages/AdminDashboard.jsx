@@ -1,6 +1,11 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext';
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
+  const { user, logout: endSession } = useAuth();
+
   // Các hàm xử lý giao diện tạm thời (mock functions)
   const switchAdminTab = (tabId) => {
     console.log(`Chuyển sang tab quản trị: ${tabId}`);
@@ -8,7 +13,10 @@ const AdminDashboard = () => {
   };
 
   const logout = () => {
-    console.log('Đăng xuất admin');
+    if (window.confirm('Bạn có chắc chắn muốn đăng xuất?')) {
+      endSession();
+      navigate('/auth', { replace: true });
+    }
   };
 
   const openModal = (modalId) => {
@@ -40,10 +48,10 @@ const AdminDashboard = () => {
 
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-3 pl-3 border-l border-slate-200">
-            <div className="w-9 h-9 rounded-xl bg-purple-600 text-white font-bold flex items-center justify-center text-sm">A</div>
+            <div className="w-9 h-9 rounded-xl bg-purple-600 text-white font-bold flex items-center justify-center text-sm">{(user?.FullName || 'A').charAt(0).toUpperCase()}</div>
             <div className="hidden md:block text-left">
-              <p className="text-xs font-bold text-slate-800 leading-tight" id="admin-name">Administrator</p>
-              <p className="text-[11px] text-slate-400">admin@smartmoney.vn</p>
+              <p className="text-xs font-bold text-slate-800 leading-tight" id="admin-name">{user?.FullName || 'Administrator'}</p>
+              <p className="text-[11px] text-slate-400">{user?.Email}</p>
             </div>
             <button type="button" onClick={logout} title="Đăng xuất" className="text-slate-400 hover:text-rose-600 p-1.5">
               <i className="fa-solid fa-arrow-right-from-bracket text-base"></i>

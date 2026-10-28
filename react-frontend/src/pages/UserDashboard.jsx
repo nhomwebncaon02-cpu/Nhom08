@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext';
 
 const UserDashboard = () => {
   const navigate = useNavigate();
+  const { user: currentUser, logout } = useAuth(); // user lấy từ JWT session (ProtectedRoute đã đảm bảo đã đăng nhập)
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [currentUser, setCurrentUser] = useState({ FullName: 'User', Email: 'user@smartmoney.vn' });
   
   // State dữ liệu mô phỏng theo localStorage
   const [stats, setStats] = useState({ totalBalance: 0, totalIncome: 0, totalExpense: 0, totalGoal: 0 });
@@ -14,15 +15,9 @@ const UserDashboard = () => {
   const [goals, setGoals] = useState([]);
 
   useEffect(() => {
-    const session = localStorage.getItem('SM_LOGGED_USER');
-    if (!session) {
-      navigate('/auth');
-      return;
-    }
-    const user = JSON.parse(session);
-    setCurrentUser(user);
-    loadData(user);
-  }, [navigate]);
+    // TODO: thay dữ liệu mock localStorage bằng API: api.get('/accounts'), api.get('/categories')...
+    if (currentUser) loadData(currentUser);
+  }, [currentUser]);
 
   const loadData = (user) => {
     const allAccounts = JSON.parse(localStorage.getItem('SM_ACCOUNTS') || '[]').filter(a => a.UserId === user.UserId);
@@ -42,8 +37,8 @@ const UserDashboard = () => {
 
   const handleLogout = () => {
     if (window.confirm('Bạn có chắc chắn muốn đăng xuất?')) {
-      localStorage.removeItem('SM_LOGGED_USER');
-      navigate('/auth');
+      logout();
+      navigate('/auth', { replace: true });
     }
   };
 
@@ -70,11 +65,11 @@ const UserDashboard = () => {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-3 pl-3 border-l border-slate-200">
             <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white font-bold flex items-center justify-center text-sm">
-              {currentUser.FullName.charAt(0).toUpperCase()}
+              {(currentUser?.FullName || '?').charAt(0).toUpperCase()}
             </div>
             <div className="hidden md:block text-left">
-              <p className="text-xs font-bold text-slate-800 leading-tight">{currentUser.FullName}</p>
-              <p className="text-[11px] text-slate-400">{currentUser.Email}</p>
+              <p className="text-xs font-bold text-slate-800 leading-tight">{currentUser?.FullName}</p>
+              <p className="text-[11px] text-slate-400">{currentUser?.Email}</p>
             </div>
             <button onClick={handleLogout} title="Đăng xuất" className="text-slate-400 hover:text-rose-600 p-1.5">
               <i className="fa-solid fa-arrow-right-from-bracket text-base"></i>
@@ -115,7 +110,7 @@ const UserDashboard = () => {
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-emerald-600 to-teal-700 p-6 rounded-3xl text-white shadow-xl">
                 <div>
-                  <h2 className="text-2xl font-black">Xin chào, {currentUser.FullName}! 👋</h2>
+                  <h2 className="text-2xl font-black">Xin chào, {currentUser?.FullName}! 👋</h2>
                   <p className="text-emerald-100 text-sm mt-1">Chúc bạn một ngày quản lý chi tiêu hiệu quả.</p>
                 </div>
               </div>
