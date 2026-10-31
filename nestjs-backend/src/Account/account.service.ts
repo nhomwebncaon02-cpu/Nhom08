@@ -1,15 +1,17 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Account } from './Entity/account.entity';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { UpdateAccountDto } from './dto/update-account.dto';
+import { TransferDto } from './dto/transfer.dto';
 
 @Injectable()
 export class AccountService {
   constructor(
     @InjectRepository(Account)
     private accountRepository: Repository<Account>,
+    private readonly dataSource: DataSource,
   ) {}
 
   /** Chỉ lấy ví của user đang đăng nhập */
@@ -57,5 +59,40 @@ export class AccountService {
     const account = await this.findOneForUser(userId, id);
     await this.accountRepository.remove(account);
     return { message: 'Đã xoá ví' };
+  }
+
+  /**
+   * Chuyển tiền giữa 2 ví của cùng 1 user (VD: rút từ Vietcombank sang Tiền mặt).
+   * Khoá 2 dòng ví trong 1 DB transaction để không bị sai số dư khi bấm liên tục.
+   * Chuyển tiền KHÔNG phải thu/chi nên không tạo bản ghi Transaction.
+   */
+  async transfer(userId: number, dto: TransferDto) {
+    if (dto.FromAccountId === dto.ToAccountId) {
+      throw new BadRequestException('Ví nguồn và ví đích phải khác nhau');
+    }
+    await this.dataSource.transaction(async (manager) => {
+      const ids = [dto.FromAccountId, dto.ToAccountId].sort((a, b) => a - b);
+      const accounts = await manager
+        .getRepository(Account)
+        .createQueryBuilder('a')
+        .setLock('pessimistic_write')
+        .where('a.AccountId IN (:...ids) AND a.UserId = :userId', { ids, userId })
+        .orderBy('a.AccountId', 'ASC')
+        .getMany();
+      const from = accounts.find((a) => a.AccountId === dto.FromAccountId);
+      const to = accounts.find((a) => a.AccountId === dto.ToAccountId);
+      if (!from || !to) throw new NotFoundException('Không tìm thấy ví');
+      if ((from.Currency || 'VND') !== (to.Currency || 'VND')) {
+        throw new BadRequestException('Chỉ chuyển được giữa 2 ví cùng loại tiền');
+      }
+      const amount = Number(dto.Amount);
+      if (from.AccountType !== 'Credit' && Number(from.Balance) < amount) {
+        throw new BadRequestException(`Số dư ví "${from.AccountName}" không đủ`);
+      }
+      from.Balance = Number(from.Balance) - amount;
+      to.Balance = Number(to.Balance) + amount;
+      await manager.getRepository(Account).save([from, to]);
+    });
+    return { message: 'Chuyển tiền thành công', wallets: await this.findAllByUser(userId) };
   }
 }

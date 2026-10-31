@@ -113,7 +113,7 @@ export class BudgetService {
    * - Sau khi chi mà vượt hạn mức               -> CHẶN (allowed = false)
    * - Sau khi chi mà >= 80% hạn mức              -> cho phép nhưng cảnh báo
    */
-  async checkExpense(userId: number, dto: CheckExpenseDto): Promise<ExpenseCheckResult> {
+  async checkExpense(userId: number, dto: CheckExpenseDto, excludeTransactionId?: number): Promise<ExpenseCheckResult> {
     const date = dto.Date ?? todayYMD();
     const category = await this.categoryRepo.findOne({ where: { categoryId: dto.CategoryId } });
     if (!category || (category.userId != null && category.userId !== userId)) {
@@ -134,7 +134,7 @@ export class BudgetService {
       return { allowed: true, status: 'no-budget', message: 'Danh mục này chưa đặt hạn mức', budget: null };
     }
 
-    const view = await this.toView(userId, budget);
+    const view = await this.toView(userId, budget, excludeTransactionId);
     const spentAfter = view.Spent + dto.Amount;
     const percentAfter = this.percent(spentAfter, view.AmountLimit);
     const fmt = (n: number) => n.toLocaleString('vi-VN') + 'đ';
@@ -176,8 +176,12 @@ export class BudgetService {
    *   await this.budgetService.assertWithinBudget(userId, { CategoryId, Amount, Date });
    * Ném lỗi 400 nếu vượt hạn mức -> giao dịch không được lưu.
    */
-  async assertWithinBudget(userId: number, dto: CheckExpenseDto): Promise<ExpenseCheckResult> {
-    const result = await this.checkExpense(userId, dto);
+  async assertWithinBudget(
+    userId: number,
+    dto: CheckExpenseDto,
+    excludeTransactionId?: number, // khi SỬA giao dịch: không tính số tiền cũ của chính nó
+  ): Promise<ExpenseCheckResult> {
+    const result = await this.checkExpense(userId, dto, excludeTransactionId);
     if (!result.allowed) {
       throw new BadRequestException({ statusCode: 400, error: 'BUDGET_EXCEEDED', message: result.message, budget: result.budget });
     }
@@ -196,7 +200,13 @@ export class BudgetService {
   }
 
   /** Tổng tiền đã chi của user cho 1 danh mục trong khoảng ngày (tính cả ngày cuối) */
-  private async getSpent(userId: number, categoryId: number, start: string, end: string): Promise<number> {
+  private async getSpent(
+    userId: number,
+    categoryId: number,
+    start: string,
+    end: string,
+    excludeTransactionId?: number,
+  ): Promise<number> {
     const rows = await this.budgetRepo.query(
       `SELECT COALESCE(SUM(t.Amount), 0) AS spent
          FROM \`Transaction\` t
@@ -204,8 +214,9 @@ export class BudgetService {
         WHERE a.UserId = ?
           AND t.CategoryId = ?
           AND t.TransactionDate >= ?
-          AND t.TransactionDate < DATE_ADD(?, INTERVAL 1 DAY)`,
-      [userId, categoryId, start, end],
+          AND t.TransactionDate < DATE_ADD(?, INTERVAL 1 DAY)
+          AND t.TransactionId <> ?`,
+      [userId, categoryId, start, end, excludeTransactionId ?? 0],
     );
     return Number(rows?.[0]?.spent ?? 0);
   }
@@ -214,10 +225,10 @@ export class BudgetService {
     return limit > 0 ? Math.round((spent / limit) * 100) : 0;
   }
 
-  private async toView(userId: number, b: Budget): Promise<BudgetView> {
+  private async toView(userId: number, b: Budget, excludeTransactionId?: number): Promise<BudgetView> {
     const start = toYMD(b.StartDate);
     const end = toYMD(b.EndDate);
-    const spent = await this.getSpent(userId, b.CategoryId, start, end);
+    const spent = await this.getSpent(userId, b.CategoryId, start, end, excludeTransactionId);
     const limit = Number(b.AmountLimit);
     const percent = this.percent(spent, limit);
     const today = todayYMD();

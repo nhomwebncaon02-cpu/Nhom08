@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, HttpCode, HttpStatus } from '@nestjs/common';
 import { AccountService } from './account.service';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { UpdateAccountDto } from './dto/update-account.dto';
+import { TransferDto } from './dto/transfer.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { JwtUser } from '../auth/decorators/current-user.decorator';
 
@@ -28,6 +29,13 @@ export class AccountController {
   @Post()
   create(@CurrentUser() user: JwtUser, @Body() dto: CreateAccountDto) {
     return this.accountService.create(user.userId, dto);
+  }
+
+  /** POST /accounts/transfer { FromAccountId, ToAccountId, Amount, Note? } */
+  @Post('transfer')
+  @HttpCode(HttpStatus.OK)
+  transfer(@CurrentUser() user: JwtUser, @Body() dto: TransferDto) {
+    return this.accountService.transfer(user.userId, dto);
   }
 
   @Patch(':id')
