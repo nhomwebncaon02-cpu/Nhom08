@@ -7,7 +7,7 @@ export class Category {
   @PrimaryGeneratedColumn()
   categoryId: number;
 
-  @Column({ nullable: true })
+  @Column({ type: 'int', nullable: true })
   userId: number | null;
 
   @Column({ length: 100 })

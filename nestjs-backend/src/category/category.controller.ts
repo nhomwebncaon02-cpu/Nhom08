@@ -1,8 +1,10 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe } from '@nestjs/common';
 import { CategoryService } from './category.service';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { CreateCategoryDto } from '../dto/create-category.dto';
 import { UpdateCategoryDto } from '../dto/update-category.dto';
-import { CurrentUser, JwtUser } from '../auth/decorators/current-user.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { JwtUser } from '../auth/decorators/current-user.decorator';
 
 @Controller('categories')
 export class CategoryController {
@@ -16,6 +18,13 @@ export class CategoryController {
   @Get()
   findAll(@CurrentUser() user: JwtUser) {
     return this.categoryService.findAll(user);
+  }
+
+  /** [Admin] GET /categories/system — danh mục hệ thống kèm số lần sử dụng */
+  @Roles('admin')
+  @Get('system')
+  findSystem() {
+    return this.categoryService.findSystem();
   }
 
   @Get(':id')

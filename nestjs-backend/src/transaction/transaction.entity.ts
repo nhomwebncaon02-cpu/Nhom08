@@ -28,6 +28,6 @@ export class Transaction {
   @Column({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
   TransactionDate: Date;
 
-  @Column({ length: 255, nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   Note: string | null;
 }
