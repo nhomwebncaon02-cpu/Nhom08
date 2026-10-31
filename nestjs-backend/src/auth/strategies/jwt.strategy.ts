@@ -26,6 +26,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     // Kiểm tra user còn tồn tại (token của user đã bị xóa sẽ không dùng được nữa)
     const user = await this.userService.findOne(payload.sub);
     if (!user) throw new UnauthorizedException('Tài khoản không còn tồn tại');
+    // Bị admin khoá -> token cũ cũng hết hiệu lực ngay
+    if (user.IsActive === false) throw new UnauthorizedException('Tài khoản đã bị khoá');
     return { userId: user.UserId, username: user.Username, role: user.Role };
   }
 }

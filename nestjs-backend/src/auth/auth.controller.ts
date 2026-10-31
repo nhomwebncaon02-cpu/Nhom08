@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, Get, HttpCode, HttpStatus, Ip } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -13,16 +13,16 @@ export class AuthController {
   /** POST /auth/register  { fullName, username, email, password } */
   @Public()
   @Post('register')
-  register(@Body() dto: RegisterDto) {
-    return this.authService.register(dto);
+  register(@Body() dto: RegisterDto, @Ip() ip: string) {
+    return this.authService.register(dto, ip);
   }
 
   /** POST /auth/login  { username (hoặc email), password } -> { access_token, user } */
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  login(@Body() dto: LoginDto) {
-    return this.authService.login(dto);
+  login(@Body() dto: LoginDto, @Ip() ip: string) {
+    return this.authService.login(dto, ip);
   }
 
   /** GET /auth/me  (Header: Authorization: Bearer <token>) -> thông tin user hiện tại */
