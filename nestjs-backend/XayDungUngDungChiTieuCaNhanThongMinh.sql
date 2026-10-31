@@ -9,6 +9,7 @@ CREATE TABLE User (
     Email VARCHAR(100) NOT NULL UNIQUE,
     FullName VARCHAR(100) NOT NULL,
     Role ENUM('user', 'admin') NOT NULL DEFAULT 'user',
+    IsActive TINYINT(1) NOT NULL DEFAULT 1,
     CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -65,6 +66,36 @@ CREATE TABLE Budget (
     StartDate DATETIME NOT NULL,
     EndDate DATETIME NOT NULL,
     FOREIGN KEY (UserId) REFERENCES User(UserId) ON DELETE CASCADE,
+    FOREIGN KEY (CategoryId) REFERENCES Category(CategoryId)
+);
+
+-- 7. Bảng AuditLog (Nhật ký hoạt động — Admin)
+CREATE TABLE AuditLog (
+    LogId INT AUTO_INCREMENT PRIMARY KEY,
+    UserId INT NULL,
+    Username VARCHAR(50) NULL,
+    Action VARCHAR(50) NOT NULL,
+    Detail VARCHAR(255) NULL,
+    IpAddress VARCHAR(64) NULL,
+    CreatedAt DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    INDEX IDX_AuditLog_Action (Action),
+    INDEX IDX_AuditLog_CreatedAt (CreatedAt)
+);
+
+-- 8. Bảng RecurringTransaction (Giao dịch định kỳ)
+CREATE TABLE RecurringTransaction (
+    RecurringId INT AUTO_INCREMENT PRIMARY KEY,
+    UserId INT NOT NULL,
+    AccountId INT NOT NULL,
+    CategoryId INT NOT NULL,
+    Amount DECIMAL(15, 2) NOT NULL,
+    Note VARCHAR(255) NULL,
+    Frequency ENUM('daily', 'weekly', 'monthly', 'yearly') NOT NULL DEFAULT 'monthly',
+    NextDate DATE NOT NULL,
+    IsActive TINYINT(1) NOT NULL DEFAULT 1,
+    CreatedAt DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    FOREIGN KEY (UserId) REFERENCES User(UserId) ON DELETE CASCADE,
+    FOREIGN KEY (AccountId) REFERENCES Account(AccountId) ON DELETE CASCADE,
     FOREIGN KEY (CategoryId) REFERENCES Category(CategoryId)
 );
 

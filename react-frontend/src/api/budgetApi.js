@@ -1,5 +1,6 @@
 import api from './axiosClient';
 
+// [Thành viên 2] Ngân sách + cảnh báo / chặn vượt hạn mức
 export const budgetApi = {
   list: () => api.get('/budgets').then((r) => r.data),
   alerts: () => api.get('/budgets/alerts').then((r) => r.data),
@@ -10,13 +11,9 @@ export const budgetApi = {
   check: (data) => api.post('/budgets/check', data).then((r) => r.data),
 };
 
-export const categoryApi = {
-  list: () => api.get('/categories').then((r) => r.data),
-};
-
-/** Màu theo trạng thái ngân sách */
+/** Màu (variant Bootstrap) theo trạng thái ngân sách */
 export const BUDGET_STATUS = {
-  ok: { label: 'An toàn', bar: 'bg-emerald-500', badge: 'bg-emerald-100 text-emerald-700' },
-  warning: { label: 'Sắp chạm hạn mức', bar: 'bg-amber-500', badge: 'bg-amber-100 text-amber-700' },
-  exceeded: { label: 'Vượt hạn mức', bar: 'bg-rose-600', badge: 'bg-rose-100 text-rose-700' },
+  ok: { label: 'An toàn', variant: 'success' },
+  warning: { label: 'Sắp chạm hạn mức', variant: 'warning' },
+  exceeded: { label: 'Vượt hạn mức', variant: 'danger' },
 };

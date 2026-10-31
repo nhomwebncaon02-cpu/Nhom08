@@ -1,5 +1,5 @@
 import {
-  ConflictException, HttpException, HttpStatus, Injectable, Logger, OnModuleInit, UnauthorizedException,
+  ConflictException, ForbiddenException, HttpException, HttpStatus, Injectable, Logger, OnModuleInit, UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
@@ -8,6 +8,7 @@ import { User } from '../user/entities/user.entity';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import type { JwtPayload } from './strategies/jwt.strategy';
+import { AuditService } from '../audit/audit.service';
 
 const SALT_ROUNDS = 10;
 const MAX_FAILED_ATTEMPTS = 5;
@@ -22,6 +23,7 @@ export class AuthService implements OnModuleInit {
   constructor(
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
+    private readonly audit: AuditService,
   ) {}
 
   /** Khi server khởi động: tạo tài khoản admin từ .env nếu DB chưa có admin nào */
@@ -50,7 +52,7 @@ export class AuthService implements OnModuleInit {
     }
   }
 
-  async register(dto: RegisterDto) {
+  async register(dto: RegisterDto, ip?: string) {
     const taken = await this.userService.existsByUsernameOrEmail(dto.username, dto.email);
     if (taken === 'username') throw new ConflictException('Tên đăng nhập đã tồn tại');
     if (taken === 'email') throw new ConflictException('Email đã được sử dụng');
@@ -63,10 +65,11 @@ export class AuthService implements OnModuleInit {
       Role: 'user',
     });
 
+    await this.audit.log({ userId: user.UserId, username: user.Username, action: 'REGISTER', detail: 'Đăng ký tài khoản mới', ip });
     return { message: 'Đăng ký thành công! Hãy đăng nhập.', user: this.toPublicUser(user) };
   }
 
-  async login(dto: LoginDto) {
+  async login(dto: LoginDto, ip?: string) {
     const key = dto.username.toLowerCase();
     this.assertNotLocked(key);
 
@@ -75,11 +78,25 @@ export class AuthService implements OnModuleInit {
 
     if (!user || !ok) {
       this.recordFailure(key);
+      await this.audit.log({
+        userId: user?.UserId ?? null,
+        username: dto.username,
+        action: 'LOGIN_FAILED',
+        detail: 'Sai tên đăng nhập hoặc mật khẩu',
+        ip,
+      });
       // Không nói rõ sai username hay sai mật khẩu để tránh dò tài khoản
       throw new UnauthorizedException('Sai tên đăng nhập hoặc mật khẩu');
     }
 
+    // [Admin] Tài khoản bị khoá thì không cho đăng nhập
+    if (user.IsActive === false) {
+      await this.audit.log({ userId: user.UserId, username: user.Username, action: 'LOGIN_BLOCKED', detail: 'Tài khoản đã bị khoá', ip });
+      throw new ForbiddenException('Tài khoản của bạn đã bị khoá. Vui lòng liên hệ quản trị viên.');
+    }
+
     this.failedLogins.delete(key);
+    await this.audit.log({ userId: user.UserId, username: user.Username, action: 'LOGIN_SUCCESS', ip });
     const payload: JwtPayload = { sub: user.UserId, username: user.Username, role: user.Role };
 
     return {
@@ -106,6 +123,7 @@ export class AuthService implements OnModuleInit {
       Email: u.Email,
       FullName: u.FullName,
       Role: u.Role,
+      IsActive: u.IsActive,
       CreatedAt: u.CreatedAt,
     };
   }
