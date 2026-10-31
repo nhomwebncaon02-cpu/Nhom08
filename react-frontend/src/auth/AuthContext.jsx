@@ -36,14 +36,23 @@ export function AuthProvider({ children }) {
     return data;
   }, []);
 
+  /** Cập nhật thông tin user đang đăng nhập (sau khi sửa hồ sơ) */
+  const updateUser = useCallback((patch) => {
+    setUser((u) => {
+      const next = { ...u, ...patch };
+      updateSessionUser(next);
+      return next;
+    });
+  }, []);
+
   const logout = useCallback(() => {
     clearSession();
     setUser(null);
   }, []);
 
   const value = useMemo(
-    () => ({ user, isAuthenticated: !!user, checking, login, register, logout }),
-    [user, checking, login, register, logout],
+    () => ({ user, isAuthenticated: !!user, checking, login, register, logout, updateUser }),
+    [user, checking, login, register, logout, updateUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
