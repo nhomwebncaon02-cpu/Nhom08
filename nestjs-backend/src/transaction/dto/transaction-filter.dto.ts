@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsDateString, IsIn, IsInt, IsOptional, Min } from 'class-validator';
+import { IsDateString, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 
 export class TransactionFilterDto {
   @IsOptional()
@@ -25,4 +25,24 @@ export class TransactionFilterDto {
   @IsOptional()
   @IsDateString({ strict: true })
   ToDate?: string;
+
+  /** Tìm theo ghi chú */
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  Search?: string;
+
+  /** Có truyền Page -> trả về dạng phân trang { items, total, page, limit } */
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  Page?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  Limit?: number;
 }

@@ -10,12 +10,14 @@ import { Category } from './category.entity';
 import { CreateCategoryDto } from '../dto/create-category.dto';
 import { UpdateCategoryDto } from '../dto/update-category.dto';
 import type { JwtUser } from '../auth/decorators/current-user.decorator';
+import { AuditService } from '../audit/audit.service';
 
 @Injectable()
 export class CategoryService {
   constructor(
     @InjectRepository(Category)
     private readonly categoryRepository: Repository<Category>,
+    private readonly audit: AuditService,
   ) {}
 
   async create(user: JwtUser, dto: CreateCategoryDto): Promise<Category> {
@@ -25,7 +27,24 @@ export class CategoryService {
       icon: dto.icon,
       userId: user.role === 'admin' ? null : user.userId,
     });
-    return this.categoryRepository.save(newCategory);
+    const saved = await this.categoryRepository.save(newCategory);
+    if (user.role === 'admin') {
+      await this.audit.log({ userId: user.userId, username: user.username, action: 'CATEGORY_CREATE', detail: `Tạo danh mục hệ thống "${saved.categoryName}" (${saved.type})` });
+    }
+    return saved;
+  }
+
+  /** [Admin] Chỉ danh mục hệ thống (userId NULL) + số lần đã được dùng */
+  async findSystem() {
+    const rows: { categoryId: number; categoryName: string; type: string; icon: string | null; usageCount: string }[] =
+      await this.categoryRepository.query(
+        `SELECT c.CategoryId AS categoryId, c.CategoryName AS categoryName, c.Type AS type, c.Icon AS icon,
+                (SELECT COUNT(*) FROM \`Transaction\` t WHERE t.CategoryId = c.CategoryId) AS usageCount
+           FROM \`Category\` c
+          WHERE c.UserId IS NULL
+          ORDER BY c.Type, c.CategoryName`,
+      );
+    return rows.map((r) => ({ ...r, categoryId: Number(r.categoryId), userId: null, usageCount: Number(r.usageCount) }));
   }
 
   /** Admin thấy tất cả; user thấy danh mục hệ thống (userId NULL) + danh mục của mình */
@@ -58,13 +77,35 @@ export class CategoryService {
       }
     }
     Object.assign(category, dto);
-    return this.categoryRepository.save(category);
+    const saved = await this.categoryRepository.save(category);
+    if (user.role === 'admin' && saved.userId == null) {
+      await this.audit.log({ userId: user.userId, username: user.username, action: 'CATEGORY_UPDATE', detail: `Sửa danh mục hệ thống "${saved.categoryName}"` });
+    }
+    return saved;
   }
 
   async remove(user: JwtUser, id: number): Promise<{ message: string }> {
     const category = await this.findOne(user, id);
     this.assertCanModify(user, category);
+
+    // Danh mục đã dùng trong giao dịch / ngân sách -> không xoá được (tránh lỗi khoá ngoại 500)
+    const [usage] = await this.categoryRepository.query(
+      `SELECT (SELECT COUNT(*) FROM \`Transaction\` WHERE CategoryId = ?) AS tx,
+              (SELECT COUNT(*) FROM \`Budget\` WHERE CategoryId = ?) AS bg`,
+      [id, id],
+    );
+    if (Number(usage?.tx) > 0 || Number(usage?.bg) > 0) {
+      throw new BadRequestException(
+        `Danh mục đang được dùng trong ${Number(usage.tx)} giao dịch và ${Number(usage.bg)} ngân sách nên không thể xoá`,
+      );
+    }
+
+    const name = category.categoryName;
+    const isSystem = category.userId == null;
     await this.categoryRepository.remove(category);
+    if (user.role === 'admin' && isSystem) {
+      await this.audit.log({ userId: user.userId, username: user.username, action: 'CATEGORY_DELETE', detail: `Xoá danh mục hệ thống "${name}"` });
+    }
     return { message: 'Đã xóa danh mục' };
   }
 

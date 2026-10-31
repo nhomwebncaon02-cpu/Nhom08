@@ -8,6 +8,15 @@ import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { TransactionFilterDto } from './dto/transaction-filter.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { Transaction } from './transaction.entity';
+import { BudgetService } from '../budget/budget.service';
+import { toYMD } from '../common/utils/date.util';
+
+export interface PagedTransactions {
+  items: Transaction[];
+  total: number;
+  page: number;
+  limit: number;
+}
 
 @Injectable()
 export class TransactionService {
@@ -15,6 +24,7 @@ export class TransactionService {
     @InjectRepository(Transaction)
     private readonly transactionRepository: Repository<Transaction>,
     private readonly dataSource: DataSource,
+    private readonly budgetService: BudgetService,
   ) {}
 
   async create(user: JwtUser, dto: CreateTransactionDto): Promise<Transaction> {
@@ -25,6 +35,16 @@ export class TransactionService {
       if (!account) throw new NotFoundException('Không tìm thấy ví');
 
       const category = await this.getVisibleCategory(manager, user, dto.CategoryId);
+
+      // [Thành viên 2] Chặn vượt hạn mức: khoản CHI vượt ngân sách -> lỗi 400, không lưu
+      if (category.type === 'Expense') {
+        await this.budgetService.assertWithinBudget(user.userId, {
+          CategoryId: dto.CategoryId,
+          Amount: Number(dto.Amount),
+          Date: dto.TransactionDate ?? toYMD(new Date()),
+        });
+      }
+
       const transaction = manager.getRepository(Transaction).create({
         AccountId: dto.AccountId,
         CategoryId: dto.CategoryId,
@@ -41,7 +61,7 @@ export class TransactionService {
     return this.findOne(user, transactionId);
   }
 
-  async findAll(user: JwtUser, filters: TransactionFilterDto): Promise<Transaction[]> {
+  async findAll(user: JwtUser, filters: TransactionFilterDto): Promise<Transaction[] | PagedTransactions> {
     if (filters.FromDate && filters.ToDate && filters.FromDate > filters.ToDate) {
       throw new BadRequestException('Ngày bắt đầu không được sau ngày kết thúc');
     }
@@ -74,10 +94,22 @@ export class TransactionService {
       });
     }
 
-    return query
-      .orderBy('transaction.TransactionDate', 'DESC')
-      .addOrderBy('transaction.TransactionId', 'DESC')
-      .getMany();
+    if (filters.Search) {
+      query.andWhere('transaction.Note LIKE :search', { search: `%${filters.Search}%` });
+    }
+
+    query.orderBy('transaction.TransactionDate', 'DESC').addOrderBy('transaction.TransactionId', 'DESC');
+
+    // Phân trang (chỉ khi FE truyền Page) — không truyền thì trả mảng như cũ
+    if (filters.Page) {
+      const limit = filters.Limit ?? 10;
+      const [items, total] = await query
+        .skip((filters.Page - 1) * limit)
+        .take(limit)
+        .getManyAndCount();
+      return { items, total, page: filters.Page, limit };
+    }
+    return query.getMany();
   }
 
   async findOne(user: JwtUser, id: number): Promise<Transaction> {
@@ -123,6 +155,19 @@ export class TransactionService {
       );
 
       const nextAmount = dto.Amount ?? Number(current.Amount);
+
+      // [Thành viên 2] Chặn vượt hạn mức khi sửa — không tính số tiền cũ của chính giao dịch này
+      if (nextCategory.type === 'Expense') {
+        await this.budgetService.assertWithinBudget(
+          user.userId,
+          {
+            CategoryId: nextCategory.categoryId,
+            Amount: Number(nextAmount),
+            Date: dto.TransactionDate ?? toYMD(current.TransactionDate),
+          },
+          id,
+        );
+      }
       this.applyBalanceChange(currentAccount, currentCategory.type, -Number(current.Amount));
       this.applyBalanceChange(nextAccount, nextCategory.type, nextAmount);
 
