@@ -4,17 +4,19 @@ import { GoalService } from './goal.service';
 
 describe('GoalController', () => {
   let controller: GoalController;
+  const service = { findAll: jest.fn(), create: jest.fn(), deposit: jest.fn() };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [GoalController],
-      providers: [GoalService],
+      providers: [{ provide: GoalService, useValue: service }],
     }).compile();
-
-    controller = module.get<GoalController>(GoalController);
+    controller = module.get(GoalController);
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('findAll dùng userId trong token', async () => {
+    service.findAll.mockResolvedValue([]);
+    await controller.findAll({ userId: 3, username: 'u', role: 'user' });
+    expect(service.findAll).toHaveBeenCalledWith(3);
   });
 });

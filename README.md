@@ -371,3 +371,61 @@ await this.budgetService.assertWithinBudget(userId, {
 - `src/pages/user/BudgetsTab.jsx` — thiết lập ngân sách, thanh tiến độ theo trạng thái, lọc "Đang áp dụng / Tất cả", công cụ "Kiểm tra trước khi chi".
 - `src/pages/user/BudgetAlerts.jsx` — banner cảnh báo, hiện ở tab Tổng quan và tab Ngân sách.
 - `src/api/walletApi.js`, `src/api/budgetApi.js` — gọi API.
+
+---
+
+# 5. Bản nâng cấp v2 — React-Bootstrap, Admin & chức năng mở rộng
+
+## 5.1. Chạy sau khi pull
+
+```bash
+# Backend
+cd nestjs-backend
+npm install
+node sql/run-migration.js   # thêm cột User.IsActive, bảng AuditLog, RecurringTransaction (chạy lại nhiều lần vẫn an toàn)
+npm run build && npm run start:dev
+
+# Frontend (đã bỏ Tailwind, dùng React-Bootstrap + Recharts)
+cd ../react-frontend
+npm install
+npm run dev
+```
+
+Tuỳ chọn: `npm install @nestjs/swagger` trong `nestjs-backend` → tài liệu API tự động tại `http://localhost:3000/api-docs`.
+
+## 5.2. Phân công theo 4 thành viên
+
+| Thành viên | Backend (`nestjs-backend/src`) | Frontend (`react-frontend/src`) |
+|---|---|---|
+| **1. Auth & Security** + Admin: người dùng, nhật ký | `auth/*` (JWT, bcrypt, guard, khoá tài khoản), `audit/*` (nhật ký), `user/*` (quản lý người dùng, hồ sơ cá nhân), `common/middleware/rate-limit.middleware.ts`, `main.ts` (CORS, helmet, ValidationPipe, Swagger), `sql/*` (migration), `.env.example` | `pages/AuthPage.jsx`, `auth/*` (session, AuthContext, ProtectedRoute), `pages/ProfilePage.jsx`, `layouts/*`, `context/ToastContext.jsx`, `components/ConfirmDialog.jsx`, `pages/admin/UsersPage.jsx`, `pages/admin/AuditLogsPage.jsx`, `api/adminApi.js`, `api/profileApi.js` |
+| **2. Ví & Ngân sách** + Trang chủ | `Account/*` (CRUD ví, chuyển tiền), `budget/*` (CRUD ngân sách, Budget Alerts, `assertWithinBudget`) | `pages/user/WalletsPage.jsx`, `pages/user/BudgetsPage.jsx`, `components/BudgetAlerts.jsx`, `pages/LandingPage.jsx`, `components/StatCard.jsx`, `PageHeader.jsx`, `EmptyState.jsx`, `Loading.jsx`, `api/walletApi.js`, `api/budgetApi.js` |
+| **3. Giao dịch** + Danh mục, Định kỳ | `transaction/*` (QueryBuilder lọc, phân trang, tìm kiếm, chặn vượt hạn mức), `category/*`, `recurring/*` (giao dịch định kỳ) | `pages/user/TransactionsPage.jsx` (lọc, phân trang, sửa, xuất CSV), `components/TransactionFormModal.jsx`, `components/PaginationBar.jsx`, `pages/user/CategoriesPage.jsx`, `pages/user/RecurringPage.jsx`, `pages/admin/SystemCategoriesPage.jsx`, `utils/*`, `api/transactionApi.js`, `api/categoryApi.js`, `api/recurringApi.js`; `api/axiosClient.js` (chặn lỗi Token, đã có từ trước) |
+| **4. Dashboard & QA** + Admin: thống kê | `dashboard/*` (summary, monthly, by-category, recent), `goal/*` (CRUD + nạp/rút từ ví), `admin/*` (thống kê hệ thống, API nhật ký), `app.module.ts`, các file `*.spec.ts` | `pages/user/OverviewPage.jsx` + `components/charts/*` (biểu đồ), `components/QuickAdd.jsx` ("Thêm nhanh" ≤ 4 click), `pages/user/GoalsPage.jsx`, `pages/admin/AdminOverviewPage.jsx`, `context/DataRefreshContext.jsx`, `App.jsx`, `main.jsx`, `index.html`, `package.json`, `assets/css/smartmoney.css`, `api/dashboardApi.js`, `api/goalApi.js` |
+
+## 5.3. API mới
+
+| Method | Endpoint | Mô tả |
+|---|---|---|
+| POST | `/accounts/transfer` | Chuyển tiền giữa 2 ví |
+| GET | `/transactions?Page=&Limit=&Search=` | Có `Page` → trả `{ items, total, page, limit }` |
+| GET | `/dashboard/summary` · `/monthly?months=6` · `/by-category?month=YYYY-MM` · `/recent` | Thống kê (userId lấy từ JWT) |
+| CRUD | `/goal` + POST `/goal/:id/deposit` · `/goal/:id/withdraw` | Mục tiêu + nạp/rút từ ví |
+| CRUD | `/recurring` + POST `/recurring/process` | Giao dịch định kỳ |
+| GET/PATCH | `/profile` · PATCH `/profile/password` | Hồ sơ cá nhân |
+| GET | `/users?search=&role=&status=&page=&limit=` | [Admin] danh sách có phân trang |
+| GET | `/users/:id` | [Admin] chi tiết + thống kê |
+| PATCH | `/users/:id/status` · `/users/:id/reset-password` | [Admin] khoá/mở khoá, đặt lại mật khẩu |
+| GET | `/admin/stats` · `/admin/audit-logs` | [Admin] thống kê hệ thống, nhật ký |
+| GET | `/categories/system` | [Admin] danh mục hệ thống + số lần dùng |
+
+## 5.4. Lỗi đã sửa so với bản trước
+
+- Backend không build được do `goal.entity.ts` tham chiếu `user.goals` không tồn tại.
+- `GoalModule`, `DashboardModule` chưa đăng ký trong `app.module.ts` → `/goal`, `/dashboard` trả 404.
+- `GET /dashboard/summary?userId=` cho xem dữ liệu người khác (IDOR); số dư tính sai (= thu − chi).
+- Thêm/sửa giao dịch chưa chặn vượt hạn mức → nay gọi `BudgetService.assertWithinBudget`.
+- `SavingGoals.jsx`, `Dashboard.jsx` dùng `react-bootstrap` chưa cài và không được nối vào app.
+- Goal: bắt FE gửi `user`, thiếu validate, sửa tay `currentAmount`, decimal trả về chuỗi.
+- Xoá danh mục đang được dùng gây lỗi 500 → nay báo lỗi 400 rõ ràng.
+- 4 file test `*.spec.ts` thiếu provider → `npm test` lỗi.
+- Dọn file thừa: `appuser.module.ts`, `src/conponents/`, `transaction/entities/transaction.entity.ts`.
